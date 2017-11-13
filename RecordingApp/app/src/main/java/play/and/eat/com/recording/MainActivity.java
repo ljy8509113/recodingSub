@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Camera;
 import android.media.MediaRecorder;
 import android.net.Uri;
 import android.os.Build;
@@ -16,6 +17,7 @@ import android.provider.MediaStore;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
+import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
@@ -49,7 +51,9 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback{
     boolean _checkPerRead = false;
     boolean _isRecodeSetting = false;
     boolean _onLoadSurfaceView = false;
-    boolean _isRecodeing = false;
+    boolean _isRecoding = false;
+
+    android.hardware.Camera _camera;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -84,11 +88,10 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback{
         if(Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB)
             _holder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
 
-
         // 녹화 시작 버튼
         _buttonRecoding.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                if(_isRecodeing){
+                if(_isRecoding){
                     stopRecoding();
                 }else{
                     startRecoding();
@@ -98,8 +101,6 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback{
     }
 
     void initRecode(){
-
-
         _recorder = new MediaRecorder();
 
         // 오디오와영상 입력 형식 설정
@@ -115,16 +116,19 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback{
         _filename = getFilename();
         _recorder.setOutputFile(_filename);
 
+
         Log.d("lee - ", "initRecode");
 
-        if(_onLoadSurfaceView && !_isRecodeSetting){
-            _recorder.setPreviewDisplay(_holder.getSurface());
-            try {
-                _recorder.prepare();
-            } catch (IOException e) {
+        setPreview();
 
-            }
-        }
+//        if(_onLoadSurfaceView && !_isRecodeSetting){
+//            _recorder.setPreviewDisplay(_holder.getSurface());
+//            try {
+//                _recorder.prepare();
+//            } catch (IOException e) {
+//
+//            }
+//        }
 
         // 녹화도중에 녹화화면을 뷰에다가 출력하게 해주는 설정
 //        _recorder.setPreviewDisplay(_holder.getSurface());
@@ -136,13 +140,18 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback{
             initRecode();
         try {
             // 녹화 준비,시작
+            _recorder.setPreviewDisplay(_holder.getSurface());
+            _recorder.prepare();
             _recorder.start();
-            _isRecodeing = true;
+            _isRecoding = true;
+
+            Log.d("lee - ", "camera count : " + android.hardware.Camera.getNumberOfCameras());
+
         } catch (Exception ex) {
             ex.printStackTrace();
             _recorder.release();
             _recorder = null;
-            _isRecodeing = false;
+            _isRecoding = false;
         }
     }
 
@@ -155,7 +164,7 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback{
         // 영상 재생에 필요한 메모리를 해제한다.
         _recorder.release();
         _recorder = null;
-        _isRecodeing = false;
+        _isRecoding = false;
 
         ContentValues values = new ContentValues(10);
 
@@ -174,7 +183,6 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback{
         }
 
         sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, videoUri));
-
     }
 
     private String getFilename() {
@@ -238,19 +246,32 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback{
         }
     }
 
+    void setPreview(){
+        try{
+            _camera = android.hardware.Camera.open();
+            _camera.setDisplayOrientation(90);
+            _camera.setPreviewDisplay(_holder);
+            _camera.startPreview();
+        }catch (IOException e){
+            Log.d("lee - "," camera exception : "+e);
+        }
+    }
+
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
-        _onLoadSurfaceView = true;
-        if(isCheckPermission()) {
-            _recorder.setPreviewDisplay(_holder.getSurface());
-            try {
-                _isRecodeSetting = true;
-                _recorder.prepare();
-                Log.d("lee - ","surface load");
-            } catch (IOException e) {
-                Log.d("lee - ","surface fail : " + e);
-            }
-        }
+//        _onLoadSurfaceView = true;
+//        if(isCheckPermission()) {
+//            _recorder.setPreviewDisplay(_holder.getSurface());
+//            try {
+//                _isRecodeSetting = true;
+//                _recorder.prepare();
+//                Log.d("lee - ","surface load");
+//            } catch (IOException e) {
+//                Log.d("lee - ","surface fail : " + e);
+//            }
+//        }
+
+        setPreview();
     }
 
     @Override
