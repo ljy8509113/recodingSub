@@ -7,7 +7,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.graphics.Camera;
+
+import android.hardware.camera2.CameraCharacteristics;
 import android.media.MediaRecorder;
 import android.net.Uri;
 import android.os.Build;
@@ -17,14 +18,18 @@ import android.provider.MediaStore;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
+import android.util.SparseIntArray;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.view.TextureView;
 import android.view.View;
+import android.view.ViewTreeObserver;
 import android.widget.Button;
 import android.widget.Toast;
 
 import java.io.IOException;
+import java.security.Policy;
 
 public class MainActivity extends Activity implements SurfaceHolder.Callback{
 
@@ -32,16 +37,36 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback{
     Button _buttonRecoding;
     SurfaceView _sView;
     SurfaceHolder _holder;
-    MediaRecorder _recorder;
-    String _filename;
-//    String EXTERNAL_STORAGE_PATH;
-    int _fileIndex = 0;
-    String RECORDED_FILE = "";
+//    MediaRecorder _recorder;
+//    String _filename;
+////    String EXTERNAL_STORAGE_PATH;
+//    int _fileIndex = 0;
+//    String RECORDED_FILE = "";
 
-    final int MY_PERMISSIONS_RECODE_AUDIO = 0;
-    final int MY_PERMISSIONS_CAMERA = 1;
-    final int MY_PERMISSIONS_WRITE_EXTERNAL_STORAGE = 2;
-    final int MY_PERMISSIONS_READ_EXTERNAL_STORAGE = 3;
+    static final int MY_PERMISSIONS_RECODE_AUDIO = 0;
+    static final int MY_PERMISSIONS_CAMERA = 1;
+    static final int MY_PERMISSIONS_WRITE_EXTERNAL_STORAGE = 2;
+    static final int MY_PERMISSIONS_READ_EXTERNAL_STORAGE = 3;
+
+    private static final int SENSOR_ORIENTATION_DEFAULT_DEGREES = 90;
+    private static final int SENSOR_ORIENTATION_INVERSE_DEGREES = 270;
+
+    private static final SparseIntArray DEFAULT_ORIENTATIONS = new SparseIntArray();
+    private static final SparseIntArray INVERSE_ORIENTATIONS = new SparseIntArray();
+
+    static {
+        DEFAULT_ORIENTATIONS.append(Surface.ROTATION_0, 90);
+        DEFAULT_ORIENTATIONS.append(Surface.ROTATION_90, 0);
+        DEFAULT_ORIENTATIONS.append(Surface.ROTATION_180, 270);
+        DEFAULT_ORIENTATIONS.append(Surface.ROTATION_270, 180);
+    }
+
+    static {
+        INVERSE_ORIENTATIONS.append(Surface.ROTATION_0, 270);
+        INVERSE_ORIENTATIONS.append(Surface.ROTATION_90, 180);
+        INVERSE_ORIENTATIONS.append(Surface.ROTATION_180, 90);
+        INVERSE_ORIENTATIONS.append(Surface.ROTATION_270, 0);
+    }
 
     SharedPreferences _pref;
 
@@ -53,7 +78,10 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback{
     boolean _onLoadSurfaceView = false;
     boolean _isRecoding = false;
 
-    android.hardware.Camera _camera;
+//    android.hardware.Camera _camera;
+
+    Preview _preView;
+    TextureView _textureView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,10 +91,8 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback{
         _buttonRecoding = (Button) findViewById(R.id.button_recoding);
         _buttonSetting = (Button) findViewById(R.id.button_setting);
 
-        _pref = getSharedPreferences(Common.SHARE_DATA_KEY, MODE_PRIVATE);
-//        String ip = _pref.getString(Common.IP_KEY, "");
-//        boolean isTeacher = _pref.getBoolean(Common.IS_TEACHER_KEY, false);
-        RECORDED_FILE = _pref.getString(Common.NAME_KEY, "Default");
+//        _pref = getSharedPreferences(Common.SHARE_DATA_KEY, MODE_PRIVATE);
+//        RECORDED_FILE = _pref.getString(Common.NAME_KEY, "Default");
 
         // 외장메모리가 있는지 확인한다.
         // Environment.getExternalStorageState() 를 통해서 현재 외장메모리를 상태를 알수있다.
@@ -76,17 +102,25 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback{
             Toast.makeText(getApplicationContext(), "외장 메모리가 마운트 되지않았습니다.", Toast.LENGTH_LONG).show();
         }
 
-        if(isCheckPermission()){
-            initRecode();
-        }
+//        _sView = (SurfaceView) findViewById(R.id.surface_view);
+//
+//        _holder = _sView.getHolder();
+//        _holder.addCallback(this);
 
-        _sView = (SurfaceView) findViewById(R.id.surface_view);
+        _textureView = (TextureView) findViewById(R.id.camera_texture);
+        _textureView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+            @Override
+            public void onGlobalLayout() {
+                if(_preView == null && isCheckPermission()) {
+                    _preView = new Preview(MainActivity.this, _textureView);
+                    _preView.openCamera();
+                    initRecode();
+                }
+            }
+        });
 
-        _holder = _sView.getHolder();
-        _holder.addCallback(this);
-
-        if(Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB)
-            _holder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+//        if(Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB)
+//            _holder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
 
         // 녹화 시작 버튼
         _buttonRecoding.setOnClickListener(new View.OnClickListener() {
@@ -100,47 +134,70 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback{
         });
     }
 
-    void initRecode(){
-        _recorder = new MediaRecorder();
-
-        // 오디오와영상 입력 형식 설정
-        _recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-        _recorder.setVideoSource(MediaRecorder.VideoSource.CAMERA);
-        _recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
-
-        // 오디오와영상 인코더 설정
-        _recorder.setAudioEncoder(MediaRecorder.AudioEncoder.DEFAULT);
-        _recorder.setVideoEncoder(MediaRecorder.VideoEncoder.DEFAULT);
-
-        // 저장될 파일 지정
-        _filename = getFilename();
-        _recorder.setOutputFile(_filename);
-
-
-        Log.d("lee - ", "initRecode");
-
-        setPreview();
-
-//        if(_onLoadSurfaceView && !_isRecodeSetting){
-//            _recorder.setPreviewDisplay(_holder.getSurface());
-//            try {
-//                _recorder.prepare();
-//            } catch (IOException e) {
+//    void initRecode(){
+//        _recorder = new MediaRecorder();
 //
-//            }
+//        // 오디오와영상 입력 형식 설정
+//        _recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+//        _recorder.setVideoSource(MediaRecorder.VideoSource.CAMERA);
+//        _recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+//
+//        // 오디오와영상 인코더 설정
+//        _recorder.setAudioEncoder(MediaRecorder.AudioEncoder.DEFAULT);
+//        _recorder.setVideoEncoder(MediaRecorder.VideoEncoder.DEFAULT);
+//
+//        _recorder.setVideoEncodingBitRate(10000000);
+//        _recorder.setVideoFrameRate(30);
+////        _recorder.setVideoSize(mVideoSize.getWidth(), mVideoSize.getHeight());
+////        mMediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
+////        mMediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+//        int rotation = this.getWindowManager().getDefaultDisplay().getRotation();
+//
+//        switch (_preView.getOrientation()) {
+//            case SENSOR_ORIENTATION_DEFAULT_DEGREES:
+//                _recorder.setOrientationHint(DEFAULT_ORIENTATIONS.get(rotation));
+//                break;
+//            case SENSOR_ORIENTATION_INVERSE_DEGREES:
+//                _recorder.setOrientationHint(INVERSE_ORIENTATIONS.get(rotation));
+//                break;
 //        }
-
-        // 녹화도중에 녹화화면을 뷰에다가 출력하게 해주는 설정
-//        _recorder.setPreviewDisplay(_holder.getSurface());
-//        _recorder.setOrientationHint(15);
-    }
+//        try {
+//            _recorder.prepare();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//
+//        // 저장될 파일 지정
+//        _filename = getFilename();
+//        _recorder.setOutputFile(_filename);
+//
+//        Log.d("lee - ", "initRecode");
+//
+//
+////        if(_onLoadSurfaceView && !_isRecodeSetting){
+////            _recorder.setPreviewDisplay(_holder.getSurface());
+////            try {
+////                _recorder.prepare();
+////            } catch (IOException e) {
+////
+////            }
+////        }
+//
+//        // 녹화도중에 녹화화면을 뷰에다가 출력하게 해주는 설정
+////        _recorder.setPreviewDisplay(_holder.getSurface());
+////        _recorder.setOrientationHint(15);
+//    }
 
     void startRecoding(){
         if(_recorder == null)
             initRecode();
         try {
+
+            _preView.openCamera();
+
             // 녹화 준비,시작
-            _recorder.setPreviewDisplay(_holder.getSurface());
+//            _recorder.setPreviewDisplay(_holder.getSurface());
+
             _recorder.prepare();
             _recorder.start();
             _isRecoding = true;
@@ -239,6 +296,9 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback{
 
             if(isCheckPermission()){
                 initRecode();
+                _preView = new Preview(MainActivity.this, _textureView);
+                _preView.openCamera();
+//                setPreview();
             }
         } else {
             // 권한 거부
@@ -246,16 +306,22 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback{
         }
     }
 
-    void setPreview(){
-        try{
-            _camera = android.hardware.Camera.open();
-            _camera.setDisplayOrientation(90);
-            _camera.setPreviewDisplay(_holder);
-            _camera.startPreview();
-        }catch (IOException e){
-            Log.d("lee - "," camera exception : "+e);
-        }
-    }
+//    void setPreview(){
+//        try{
+//            _camera = android.hardware.Camera.open();
+//            _camera.setAutoFocusMoveCallback(new android.hardware.Camera.AutoFocusMoveCallback() {
+//                @Override
+//                public void onAutoFocusMoving(boolean start, android.hardware.Camera camera) {
+//                    Log.d("lee - ","camera auto");
+//                }
+//            });
+//            _camera.setDisplayOrientation(90);
+//            _camera.setPreviewDisplay(_holder);
+//            _camera.startPreview();
+//        }catch (IOException e){
+//            Log.d("lee - "," camera exception : "+e);
+//        }
+//    }
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
@@ -271,16 +337,16 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback{
 //            }
 //        }
 
-        setPreview();
+//        setPreview();
     }
 
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-
     }
 
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
 
     }
+
 }
