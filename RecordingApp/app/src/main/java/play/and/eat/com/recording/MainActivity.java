@@ -48,25 +48,6 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback{
     static final int MY_PERMISSIONS_WRITE_EXTERNAL_STORAGE = 2;
     static final int MY_PERMISSIONS_READ_EXTERNAL_STORAGE = 3;
 
-    private static final int SENSOR_ORIENTATION_DEFAULT_DEGREES = 90;
-    private static final int SENSOR_ORIENTATION_INVERSE_DEGREES = 270;
-
-    private static final SparseIntArray DEFAULT_ORIENTATIONS = new SparseIntArray();
-    private static final SparseIntArray INVERSE_ORIENTATIONS = new SparseIntArray();
-
-    static {
-        DEFAULT_ORIENTATIONS.append(Surface.ROTATION_0, 90);
-        DEFAULT_ORIENTATIONS.append(Surface.ROTATION_90, 0);
-        DEFAULT_ORIENTATIONS.append(Surface.ROTATION_180, 270);
-        DEFAULT_ORIENTATIONS.append(Surface.ROTATION_270, 180);
-    }
-
-    static {
-        INVERSE_ORIENTATIONS.append(Surface.ROTATION_0, 270);
-        INVERSE_ORIENTATIONS.append(Surface.ROTATION_90, 180);
-        INVERSE_ORIENTATIONS.append(Surface.ROTATION_180, 90);
-        INVERSE_ORIENTATIONS.append(Surface.ROTATION_270, 0);
-    }
 
     SharedPreferences _pref;
 
@@ -113,8 +94,10 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback{
             public void onGlobalLayout() {
                 if(_preView == null && isCheckPermission()) {
                     _preView = new Preview(MainActivity.this, _textureView);
+
                     _preView.openCamera();
-                    initRecode();
+                    _preView.initRecode();
+                    _preView.onInit();
                 }
             }
         });
@@ -189,64 +172,69 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback{
 //    }
 
     void startRecoding(){
-        if(_recorder == null)
-            initRecode();
-        try {
+//        if(_recorder == null)
+//            initRecode();
+//        try {
+//
+//            _preView.openCamera();
+//
+//            // 녹화 준비,시작
+////            _recorder.setPreviewDisplay(_holder.getSurface());
+//
+//            _recorder.prepare();
+//            _recorder.start();
+//            _isRecoding = true;
+//
+//            Log.d("lee - ", "camera count : " + android.hardware.Camera.getNumberOfCameras());
+//
+//        } catch (Exception ex) {
+//            ex.printStackTrace();
+//            _recorder.release();
+//            _recorder = null;
+//            _isRecoding = false;
+//        }
 
-            _preView.openCamera();
+        _preView.startRecordingVideo();
 
-            // 녹화 준비,시작
-//            _recorder.setPreviewDisplay(_holder.getSurface());
-
-            _recorder.prepare();
-            _recorder.start();
-            _isRecoding = true;
-
-            Log.d("lee - ", "camera count : " + android.hardware.Camera.getNumberOfCameras());
-
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            _recorder.release();
-            _recorder = null;
-            _isRecoding = false;
-        }
     }
 
     void stopRecoding(){
-        if (_recorder == null)
-            return;
-        // 녹화 중지
-        _recorder.stop();
+//        if (_recorder == null)
+//            return;
+//        // 녹화 중지
+//        _recorder.stop();
+//
+//        // 영상 재생에 필요한 메모리를 해제한다.
+//        _recorder.release();
+//        _recorder = null;
+//        _isRecoding = false;
+//
+//        ContentValues values = new ContentValues(10);
+//
+//        values.put(MediaStore.MediaColumns.TITLE, "RecordedVideo");
+//        values.put(MediaStore.Audio.Media.ALBUM, "Video Album");
+//        values.put(MediaStore.Audio.Media.ARTIST, "Mike");
+//        values.put(MediaStore.Audio.Media.DISPLAY_NAME, "Recorded Video");
+//        values.put(MediaStore.MediaColumns.DATE_ADDED, System.currentTimeMillis() / 1000);
+//        values.put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4");
+//        values.put(MediaStore.Audio.Media.DATA, _filename);
+//
+//        Uri videoUri = getContentResolver().insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, values);
+//        if (videoUri == null) {
+//            Log.d("SampleVideoRecorder", "Video insert failed.");
+//            return;
+//        }
+//
+//        sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, videoUri));
 
-        // 영상 재생에 필요한 메모리를 해제한다.
-        _recorder.release();
-        _recorder = null;
-        _isRecoding = false;
-
-        ContentValues values = new ContentValues(10);
-
-        values.put(MediaStore.MediaColumns.TITLE, "RecordedVideo");
-        values.put(MediaStore.Audio.Media.ALBUM, "Video Album");
-        values.put(MediaStore.Audio.Media.ARTIST, "Mike");
-        values.put(MediaStore.Audio.Media.DISPLAY_NAME, "Recorded Video");
-        values.put(MediaStore.MediaColumns.DATE_ADDED, System.currentTimeMillis() / 1000);
-        values.put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4");
-        values.put(MediaStore.Audio.Media.DATA, _filename);
-
-        Uri videoUri = getContentResolver().insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, values);
-        if (videoUri == null) {
-            Log.d("SampleVideoRecorder", "Video insert failed.");
-            return;
-        }
-
-        sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, videoUri));
+        _preView.stopRecordingVideo();
     }
 
-    private String getFilename() {
-        _fileIndex++;
-        String newFilename = Common.getRootPath() + RECORDED_FILE +"_"+ _fileIndex + ".mp4";
-        return newFilename;
-    }
+//    private String getFilename() {
+//        _fileIndex++;
+//        String newFilename = Common.getRootPath() + RECORDED_FILE +"_"+ _fileIndex + ".mp4";
+//        return newFilename;
+//    }
 
     boolean isCheckPermission(){
         _checkPerCamera = checkPermission(this, Manifest.permission.CAMERA, MY_PERMISSIONS_CAMERA);
@@ -295,9 +283,10 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback{
             }
 
             if(isCheckPermission()){
-                initRecode();
+//                initRecode();
                 _preView = new Preview(MainActivity.this, _textureView);
                 _preView.openCamera();
+                _preView.initRecode();
 //                setPreview();
             }
         } else {
@@ -347,6 +336,20 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback{
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
 
+    }
+
+//    @Override
+//    protected void onResume(){
+//        super.onResume();
+//        if(_preView != null)
+//            _preView.onInit();
+//    }
+
+    @Override
+    protected void onDestroy(){
+        if(_preView != null)
+            _preView.onEnd();
+        super.onDestroy();
     }
 
 }

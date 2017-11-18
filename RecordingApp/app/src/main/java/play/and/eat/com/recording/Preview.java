@@ -18,10 +18,12 @@ import android.media.MediaRecorder;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.preference.PreferenceManager;
+import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.util.Size;
+import android.util.SparseIntArray;
 import android.view.Surface;
 import android.view.TextureView;
 import android.widget.Toast;
@@ -53,12 +55,42 @@ public class Preview extends Thread {
     String RECORDED_FILE = "";
     SharedPreferences _pref;
 
+    private static final int SENSOR_ORIENTATION_DEFAULT_DEGREES = 90;
+    private static final int SENSOR_ORIENTATION_INVERSE_DEGREES = 270;
+
+    private static final SparseIntArray DEFAULT_ORIENTATIONS = new SparseIntArray();
+    private static final SparseIntArray INVERSE_ORIENTATIONS = new SparseIntArray();
+
+    static {
+        DEFAULT_ORIENTATIONS.append(Surface.ROTATION_0, 90);
+        DEFAULT_ORIENTATIONS.append(Surface.ROTATION_90, 0);
+        DEFAULT_ORIENTATIONS.append(Surface.ROTATION_180, 270);
+        DEFAULT_ORIENTATIONS.append(Surface.ROTATION_270, 180);
+    }
+
+    static {
+        INVERSE_ORIENTATIONS.append(Surface.ROTATION_0, 270);
+        INVERSE_ORIENTATIONS.append(Surface.ROTATION_90, 180);
+        INVERSE_ORIENTATIONS.append(Surface.ROTATION_180, 90);
+        INVERSE_ORIENTATIONS.append(Surface.ROTATION_270, 0);
+    }
+
+    /**
+     * A {@link Handler} for running tasks in the background.
+     */
+    private Handler mBackgroundHandler;
+
+    /**
+     * An additional thread for running tasks that shouldn't block the UI.
+     */
+    private HandlerThread mBackgroundThread;
+
 
     public Preview(Context context, TextureView textureView) {
         mContext = context;
         mTextureView = textureView;
 
-        _pref = (Activity)mContext.getDefaultSharedPreferences(Common.SHARE_DATA_KEY, Context.MODE_PRIVATE);
+        _pref = mContext.getSharedPreferences(Common.SHARE_DATA_KEY, Context.MODE_PRIVATE);
         RECORDED_FILE = _pref.getString(Common.NAME_KEY, "Default");
     }
 
@@ -164,6 +196,7 @@ public class Preview extends Thread {
 
         texture.setDefaultBufferSize(mPreviewSize.getWidth(), mPreviewSize.getHeight());
         Surface surface = new Surface(texture);
+        setSurfaceTextureListener();
 
         try {
             mPreviewBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
@@ -219,29 +252,7 @@ public class Preview extends Thread {
         mTextureView.setSurfaceTextureListener(mSurfaceTextureListener);
     }
 
-    public void onResume() {
-        Log.d(TAG, "onResume");
-        setSurfaceTextureListener();
-    }
-
     private Semaphore mCameraOpenCloseLock = new Semaphore(1);
-
-    public void onPause() {
-        // TODO Auto-generated method stub
-        Log.d(TAG, "onPause");
-        try {
-            mCameraOpenCloseLock.acquire();
-            if (null != mCameraDevice) {
-                mCameraDevice.close();
-                mCameraDevice = null;
-                Log.d(TAG, "CameraDevice Close");
-            }
-        } catch (InterruptedException e) {
-            throw new RuntimeException("Interrupted while trying to lock camera closing.");
-        } finally {
-            mCameraOpenCloseLock.release();
-        }
-    }
 
     public int getOrientation(){
         CameraManager manager = (CameraManager) mContext.getSystemService(Context.CAMERA_SERVICE);
@@ -256,7 +267,7 @@ public class Preview extends Thread {
         }
     }
 
-    void initRecode(){
+    public void initRecode(){
         _recorder = new MediaRecorder();
 
         // 오디오와영상 입력 형식 설정
@@ -270,12 +281,10 @@ public class Preview extends Thread {
 
         _recorder.setVideoEncodingBitRate(10000000);
         _recorder.setVideoFrameRate(30);
-//        _recorder.setVideoSize(mVideoSize.getWidth(), mVideoSize.getHeight());
-//        mMediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
-//        mMediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
-        int rotation = this.getWindowManager().getDefaultDisplay().getRotation();
 
-        switch (_preView.getOrientation()) {
+        int rotation = ((Activity)mContext).getWindowManager().getDefaultDisplay().getRotation();
+
+        switch (getOrientation()) {
             case SENSOR_ORIENTATION_DEFAULT_DEGREES:
                 _recorder.setOrientationHint(DEFAULT_ORIENTATIONS.get(rotation));
                 break;
@@ -283,6 +292,7 @@ public class Preview extends Thread {
                 _recorder.setOrientationHint(INVERSE_ORIENTATIONS.get(rotation));
                 break;
         }
+
         try {
             _recorder.prepare();
         } catch (IOException e) {
@@ -310,7 +320,7 @@ public class Preview extends Thread {
 //        _recorder.setOrientationHint(15);
     }
 
-    private void startRecordingVideo() {
+    public void startRecordingVideo() {
         if (null == mCameraDevice || !mTextureView.isAvailable() || null == mPreviewSize) {
             return;
         }
@@ -329,9 +339,10 @@ public class Preview extends Thread {
             mPreviewBuilder.addTarget(previewSurface);
 
             // Set up Surface for the MediaRecorder
-            Surface recorderSurface = mMediaRecorder.getSurface();
-            surfaces.add(recorderSurface);
-            mPreviewBuilder.addTarget(recorderSurface);
+//            Surface recorderSurface = _recorder.getSurface();
+//            surfaces.add(recorderSurface);
+//            mPreviewBuilder.addTarget(recorderSurface);
+            _recorder.setPreviewDisplay(previewSurface);
 
             // Start a capture session
             // Once the session starts, we can update the UI and start recording
@@ -341,28 +352,31 @@ public class Preview extends Thread {
                 public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
                     mPreviewSession = cameraCaptureSession;
                     updatePreview();
-                    getActivity().runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            // UI
-                            mButtonVideo.setText(R.string.stop);
-                            mIsRecordingVideo = true;
 
-                            // Start recording
-                            mMediaRecorder.start();
-                        }
-                    });
+                    _recorder.start();
+
+//                    ((Activity)mContext).runOnUiThread(new Runnable() {
+//                        @Override
+//                        public void run() {
+//                            // UI
+////                            mButtonVideo.setText(R.string.stop);
+////                            mIsRecordingVideo = true;
+//
+//                            // Start recording
+////                            _recorder.start();
+//                        }
+//                    });
                 }
 
                 @Override
                 public void onConfigureFailed(@NonNull CameraCaptureSession cameraCaptureSession) {
-                    Activity activity = getActivity();
+                    Activity activity = ((Activity)mContext);//getActivity();
                     if (null != activity) {
                         Toast.makeText(activity, "Failed", Toast.LENGTH_SHORT).show();
                     }
                 }
             }, mBackgroundHandler);
-        } catch (CameraAccessException | IOException e) {
+        } catch (CameraAccessException e) {
             e.printStackTrace();
         }
 
@@ -375,22 +389,96 @@ public class Preview extends Thread {
         }
     }
 
-    private void stopRecordingVideo() {
+    public void stopRecordingVideo() {
         // UI
-        mIsRecordingVideo = false;
-        mButtonVideo.setText(R.string.record);
+//        mIsRecordingVideo = false;
+//        mButtonVideo.setText(R.string.record);
         // Stop recording
-        mMediaRecorder.stop();
-        mMediaRecorder.reset();
+        _recorder.stop();
+        _recorder.reset();
 
-        Activity activity = getActivity();
-        if (null != activity) {
-            Toast.makeText(activity, "Video saved: " + mNextVideoAbsolutePath,
-                    Toast.LENGTH_SHORT).show();
-            Log.d(TAG, "Video saved: " + mNextVideoAbsolutePath);
-        }
-        mNextVideoAbsolutePath = null;
+//        Activity activity = ((Activity)mContext);
+//        if (null != activity) {
+//            Toast.makeText(activity, "Video saved: " + mNextVideoAbsolutePath, Toast.LENGTH_SHORT).show();
+//            Log.d(TAG, "Video saved: " + mNextVideoAbsolutePath);
+//        }
+//        mNextVideoAbsolutePath = null;
         startPreview();
+    }
+
+    private String getFilename() {
+        _fileIndex++;
+        String newFilename = Common.getRootPath() + RECORDED_FILE +"_"+ _fileIndex + ".mp4";
+        return newFilename;
+    }
+
+    /**
+     * Starts a background thread and its {@link Handler}.
+     */
+    private void startBackgroundThread() {
+        mBackgroundThread = new HandlerThread("CameraBackground");
+        mBackgroundThread.start();
+        mBackgroundHandler = new Handler(mBackgroundThread.getLooper());
+    }
+
+    /**
+     * Stops the background thread and its {@link Handler}.
+     */
+    private void stopBackgroundThread() {
+        mBackgroundThread.quitSafely();
+        try {
+            mBackgroundThread.join();
+            mBackgroundThread = null;
+            mBackgroundHandler = null;
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+//    public void onResume() {
+//        startBackgroundThread();
+//        if (mTextureView.isAvailable()) {
+//            openCamera(mTextureView.getWidth(), mTextureView.getHeight());
+//        } else {
+//            mTextureView.setSurfaceTextureListener(mSurfaceTextureListener);
+//        }
+//    }
+
+//    public void onPause() {
+//        closeCamera();
+//        stopBackgroundThread();
+//    }
+
+    private void closeCamera() {
+        try {
+            mCameraOpenCloseLock.acquire();
+            closePreviewSession();
+            if (null != mCameraDevice) {
+                mCameraDevice.close();
+                mCameraDevice = null;
+            }
+            if (null != _recorder) {
+                _recorder.release();
+                _recorder = null;
+            }
+        } catch (InterruptedException e) {
+            throw new RuntimeException("Interrupted while trying to lock camera closing.");
+        } finally {
+            mCameraOpenCloseLock.release();
+        }
+    }
+
+    public void onInit() {
+        Log.d(TAG, "onResume");
+//        setSurfaceTextureListener();
+//        startBackgroundThread();
+    }
+
+    public void onEnd() {
+        // TODO Auto-generated method stub
+        Log.d(TAG, "onPause");
+        closeCamera();
+//        stopBackgroundThread();
     }
 }
 
