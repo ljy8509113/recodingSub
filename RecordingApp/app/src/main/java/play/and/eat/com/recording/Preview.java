@@ -276,8 +276,8 @@ public class Preview extends Thread {
         _recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
 
         // 오디오와영상 인코더 설정
-        _recorder.setAudioEncoder(MediaRecorder.AudioEncoder.DEFAULT);
-        _recorder.setVideoEncoder(MediaRecorder.VideoEncoder.DEFAULT);
+        _recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+        _recorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
 
         _recorder.setVideoEncodingBitRate(10000000);
         _recorder.setVideoFrameRate(30);
@@ -293,11 +293,11 @@ public class Preview extends Thread {
                 break;
         }
 
-        try {
-            _recorder.prepare();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+//        try {
+//            _recorder.prepare();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
 
         // 저장될 파일 지정
         _filename = getFilename();
@@ -353,7 +353,14 @@ public class Preview extends Thread {
                     mPreviewSession = cameraCaptureSession;
                     updatePreview();
 
-                    _recorder.start();
+                    try {
+                        _recorder.prepare();
+                        _recorder.start();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+
 
 //                    ((Activity)mContext).runOnUiThread(new Runnable() {
 //                        @Override
