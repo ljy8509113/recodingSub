@@ -289,19 +289,21 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
     public void onResume() {
         super.onResume();
 //        startBackgroundThread();
-        if (mTextureView.isAvailable()) {
-            openCamera(mTextureView.getWidth(), mTextureView.getHeight());
-        } else {
-            mTextureView.setSurfaceTextureListener(mSurfaceTextureListener);
+        if(!mIsRecordingVideo) {
+            if (mTextureView.isAvailable()) {
+                openCamera(mTextureView.getWidth(), mTextureView.getHeight());
+            } else {
+                mTextureView.setSurfaceTextureListener(mSurfaceTextureListener);
+            }
         }
     }
 
-    @Override
-    public void onPause() {
+//    @Override
+//    public void onPause() {
 //        closeCamera();
 //        stopBackgroundThread();
-        super.onPause();
-    }
+//        super.onPause();
+//    }
 
     @Override
     public void onClick(View view) {
