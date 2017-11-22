@@ -23,8 +23,10 @@ public class Common {
             folder = root+"/recodeFiles/";
         }
 
+
         File f = new File(folder);
-        f.mkdir();
+        if(f.isDirectory() == false)
+            f.mkdir();
 
         return folder;
     }
