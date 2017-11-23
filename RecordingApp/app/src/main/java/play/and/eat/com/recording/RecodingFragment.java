@@ -406,8 +406,7 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
 
     private boolean hasPermissionsGranted(String[] permissions) {
         for (String permission : permissions) {
-            if (ActivityCompat.checkSelfPermission(getActivity(), permission)
-                    != PackageManager.PERMISSION_GRANTED) {
+            if (ActivityCompat.checkSelfPermission(getActivity(), permission) != PackageManager.PERMISSION_GRANTED) {
                 return false;
             }
         }
@@ -467,6 +466,9 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
         } catch (InterruptedException e) {
             throw new RuntimeException("Interrupted while trying to lock camera opening.");
         }
+
+        _activity.checkAdmin();
+
     }
 
     private void closeCamera() {
@@ -590,12 +592,13 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
 //        if (mNextVideoAbsolutePath == null || mNextVideoAbsolutePath.isEmpty()) {
 //            mNextVideoAbsolutePath = getVideoFilePath(getActivity());
 //        }
+        
         mMediaRecorder.setOutputFile(getFilename());
         mMediaRecorder.setVideoEncodingBitRate(10000000);
         mMediaRecorder.setVideoFrameRate(30);
         mMediaRecorder.setVideoSize(mVideoSize.getWidth(), mVideoSize.getHeight());
-        mMediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.DEFAULT);
-        mMediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.DEFAULT);
+        mMediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.MPEG_4_SP);
+        mMediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
         int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
         switch (mSensorOrientation) {
             case SENSOR_ORIENTATION_DEFAULT_DEGREES:

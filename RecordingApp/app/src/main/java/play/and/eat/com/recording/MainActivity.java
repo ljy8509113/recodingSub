@@ -40,12 +40,17 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        _devicePolicyManager= (DevicePolicyManager) getApplicationContext().getSystemService(Context.DEVICE_POLICY_SERVICE);
+
         if (null == savedInstanceState) {
             _frameRecode = RecodingFragment.newInstance(this);
             getFragmentManager().beginTransaction().replace(R.id.container, _frameRecode).commit();
         }
 
-        _devicePolicyManager= (DevicePolicyManager) getApplicationContext().getSystemService(Context.DEVICE_POLICY_SERVICE);
+        connection();
+    }
+
+    public void checkAdmin(){
         ComponentName componentName = new ComponentName(getApplicationContext(), ShutdownConfigAdminReceiver.class);
 
         if(!_devicePolicyManager.isAdminActive(componentName)) {
@@ -53,8 +58,6 @@ public class MainActivity extends Activity {
             intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, componentName);
             startActivityForResult(intent, 0);
         }
-
-        connection();
     }
 
     public void offScreen(){
