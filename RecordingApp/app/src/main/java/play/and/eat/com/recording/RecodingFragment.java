@@ -177,6 +177,8 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
 
     SettingView _viewSetting;
     Button _buttonSetting;
+    MainActivity _activity;
+
 
     private CameraDevice.StateCallback mStateCallback = new CameraDevice.StateCallback() {
 
@@ -213,9 +215,12 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
 //    private String mNextVideoAbsolutePath;
     private CaptureRequest.Builder mPreviewBuilder;
 
-    public static RecodingFragment newInstance() {
-        return new RecodingFragment();
+    public static RecodingFragment newInstance(MainActivity ac) {
+        RecodingFragment rc = new RecodingFragment();
+        rc._activity = ac;
+        return rc;
     }
+
 
     /**
      * In this sample, we choose a video size with 3x4 aspect ratio. Also, we don't use sizes
@@ -287,7 +292,6 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
 
     @Override
     public void onResume() {
-        super.onResume();
 //        startBackgroundThread();
         if(!mIsRecordingVideo) {
             if (mTextureView.isAvailable()) {
@@ -296,14 +300,15 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
                 mTextureView.setSurfaceTextureListener(mSurfaceTextureListener);
             }
         }
+        super.onResume();
     }
 
-//    @Override
-//    public void onPause() {
+    @Override
+    public void onPause() {
 //        closeCamera();
 //        stopBackgroundThread();
-//        super.onPause();
-//    }
+        super.onPause();
+    }
 
     @Override
     public void onClick(View view) {
@@ -328,28 +333,28 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
         }
     }
 
-    /**
-     * Starts a background thread and its {@link Handler}.
-     */
-    private void startBackgroundThread() {
-        mBackgroundThread = new HandlerThread("CameraBackground");
-        mBackgroundThread.start();
-        mBackgroundHandler = new Handler(mBackgroundThread.getLooper());
-    }
-
-    /**
-     * Stops the background thread and its {@link Handler}.
-     */
-    private void stopBackgroundThread() {
-        mBackgroundThread.quitSafely();
-        try {
-            mBackgroundThread.join();
-            mBackgroundThread = null;
-            mBackgroundHandler = null;
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
+//    /**
+//     * Starts a background thread and its {@link Handler}.
+//     */
+//    private void startBackgroundThread() {
+//        mBackgroundThread = new HandlerThread("CameraBackground");
+//        mBackgroundThread.start();
+//        mBackgroundHandler = new Handler(mBackgroundThread.getLooper());
+//    }
+//
+//    /**
+//     * Stops the background thread and its {@link Handler}.
+//     */
+//    private void stopBackgroundThread() {
+//        mBackgroundThread.quitSafely();
+//        try {
+//            mBackgroundThread.join();
+//            mBackgroundThread = null;
+//            mBackgroundHandler = null;
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
+//    }
 
     /**
      * Gets whether you should show UI with rationale for requesting permissions.
@@ -608,7 +613,7 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
 //        return (dir == null ? "" : (dir.getAbsolutePath() + "/")) + System.currentTimeMillis() + ".mp4";
 //    }
 
-    private void startRecordingVideo() {
+    public void startRecordingVideo() {
         if (null == mCameraDevice || !mTextureView.isAvailable() || null == mPreviewSize) {
             return;
         }
@@ -631,6 +636,7 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
             surfaces.add(recorderSurface);
             mPreviewBuilder.addTarget(recorderSurface);
 
+
             // Start a capture session
             // Once the session starts, we can update the UI and start recording
             mCameraDevice.createCaptureSession(surfaces, new CameraCaptureSession.StateCallback() {
@@ -648,6 +654,8 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
 
                             // Start recording
                             mMediaRecorder.start();
+                            _activity.offScreen();
+
                         }
                     });
                 }
@@ -673,21 +681,15 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
         }
     }
 
-    private void stopRecordingVideo() {
+    public void stopRecordingVideo() {
         // UI
         mIsRecordingVideo = false;
         mButtonVideo.setText(R.string.record);
         // Stop recording
+        closePreviewSession();
         mMediaRecorder.stop();
         mMediaRecorder.reset();
 
-//        Activity activity = getActivity();
-//        if (null != activity) {
-//            Toast.makeText(activity, "Video saved: " + mNextVideoAbsolutePath,
-//                    Toast.LENGTH_SHORT).show();
-//            Log.d(TAG, "Video saved: " + mNextVideoAbsolutePath);
-//        }
-//        mNextVideoAbsolutePath = null;
         startPreview();
     }
 

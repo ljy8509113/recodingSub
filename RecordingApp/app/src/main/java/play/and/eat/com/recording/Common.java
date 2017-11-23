@@ -13,6 +13,7 @@ public class Common {
     public final static String IS_TEACHER_KEY = "isTeacher";
     public final static String IP_KEY = "ip";
     public final static String NAME_KEY = "name";
+    public final static String PORT_KEY = "port";
 
     public static String getRootPath(){
         String root = Environment.getExternalStorageDirectory().getAbsolutePath();

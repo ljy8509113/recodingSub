@@ -5,4 +5,6 @@
     <string name="camera_error">This device doesn\'t support Camera2 API.</string>
     <string name="record">Record</string>
     <string name="stop">Stop</string>
+    <string name="sample_device_admin">SAMPLE DEVICE ADMIN</string>
+    <string name="sample_device_admin_description">DESCRIPTION</string>
 </resources>

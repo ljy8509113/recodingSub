@@ -27,6 +27,7 @@ public class SettingView extends FrameLayout implements View.OnClickListener {
     Button _buttonBack;
     EditText _editIp;
     EditText _editName;
+    EditText _editPort;
     RadioGroup _radioGroup;
     Button _buttonSave;
 
@@ -55,6 +56,7 @@ public class SettingView extends FrameLayout implements View.OnClickListener {
         _buttonBack = (Button)v.findViewById(R.id.button_back);
         _editIp = (EditText)v.findViewById(R.id.edit_ip);
         _editName = (EditText) v.findViewById(R.id.edit_name);
+        _editPort = (EditText) v.findViewById(R.id.edit_port);
         _radioGroup = (RadioGroup)v.findViewById(R.id.radioGroup);
         _buttonSave = (Button)v.findViewById(R.id.button_save);
 
@@ -72,10 +74,12 @@ public class SettingView extends FrameLayout implements View.OnClickListener {
         String ip = _pref.getString(Common.IP_KEY, "");
         boolean isTeacher = _pref.getBoolean(Common.IS_TEACHER_KEY, false);
         String name = _pref.getString(Common.NAME_KEY, "");
+        int port = _pref.getInt(Common.PORT_KEY,0);
 
         if(ip.equals("") == false){
             _editIp.setText(ip);
             _editName.setText(name);
+            _editPort.setText(port);
             if(isTeacher){
                 _radioGroup.check(R.id.radio_0);
             }else{
@@ -101,6 +105,7 @@ public class SettingView extends FrameLayout implements View.OnClickListener {
 
                 String validIp = "^([1-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(\\.([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])){3}$";
                 String ip = _editIp.getText().toString();
+                int port = Integer.parseInt(_editPort.getText().toString());
 
                 if (!Pattern.matches(validIp, ip)) {
                     Toast.makeText(getContext(), "IP 확인이 필요합니다.", Toast.LENGTH_LONG).show();
@@ -111,10 +116,16 @@ public class SettingView extends FrameLayout implements View.OnClickListener {
                         return;
                     }
 
+                    if(port < 1){
+                        Toast.makeText(getContext(), "포트 확인이 필요합니다.", Toast.LENGTH_LONG).show();
+                        return;
+                    }
+
                     SharedPreferences.Editor edit = _pref.edit();
 
                     edit.putString(Common.NAME_KEY, _editName.getText().toString());
                     edit.putString(Common.IP_KEY, ip);
+                    edit.putInt(Common.PORT_KEY, port);
                     edit.commit();
                     Toast.makeText(getContext(), "저장완료 : "+ip, Toast.LENGTH_LONG).show();
                 }
