@@ -49,11 +49,13 @@ import java.util.List;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
+import play.and.eat.com.recording.play.and.eat.com.recording.listener.SettingListener;
+
 /**
  * Created by jeounglee on 2017. 11. 22..
  */
 
-public class RecodingFragment extends Fragment implements View.OnClickListener, FragmentCompat.OnRequestPermissionsResultCallback {
+public class RecodingFragment extends Fragment implements View.OnClickListener, FragmentCompat.OnRequestPermissionsResultCallback, SettingListener {
 
     private static final int SENSOR_ORIENTATION_DEFAULT_DEGREES = 90;
     private static final int SENSOR_ORIENTATION_INVERSE_DEGREES = 270;
@@ -178,7 +180,7 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
     SettingView _viewSetting;
     Button _buttonSetting;
     MainActivity _activity;
-
+    public SettingListener _listener;
 
     private CameraDevice.StateCallback mStateCallback = new CameraDevice.StateCallback() {
 
@@ -215,9 +217,10 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
 //    private String mNextVideoAbsolutePath;
     private CaptureRequest.Builder mPreviewBuilder;
 
-    public static RecodingFragment newInstance(MainActivity ac) {
+    public static RecodingFragment newInstance(MainActivity ac, SettingListener listener) {
         RecodingFragment rc = new RecodingFragment();
         rc._activity = ac;
+        rc._listener = listener;
         return rc;
     }
 
@@ -285,6 +288,7 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
 
         _viewSetting = (SettingView) view.findViewById(R.id.view_setting);
         _viewSetting.setVisibility(View.GONE);
+        _viewSetting._listener = this;
 
         _buttonSetting = (Button) view.findViewById(R.id.button_setting);
         _buttonSetting.setOnClickListener(this);
@@ -694,6 +698,11 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
         mMediaRecorder.reset();
 
         startPreview();
+    }
+
+    @Override
+    public void onSaved(String ip, int port, String userName) {
+        _listener.onSaved(ip, port, userName);
     }
 
     /**

@@ -18,6 +18,8 @@ import android.widget.Toast;
 
 import java.util.regex.Pattern;
 
+import play.and.eat.com.recording.play.and.eat.com.recording.listener.SettingListener;
+
 /**
  * Created by jeounglee on 2017. 11. 22..
  */
@@ -32,6 +34,7 @@ public class SettingView extends FrameLayout implements View.OnClickListener {
     Button _buttonSave;
 
     SharedPreferences _pref;
+    public SettingListener _listener;
 
     public SettingView(Context context) {
         super(context);
@@ -110,24 +113,18 @@ public class SettingView extends FrameLayout implements View.OnClickListener {
                 if (!Pattern.matches(validIp, ip)) {
                     Toast.makeText(getContext(), "IP 확인이 필요합니다.", Toast.LENGTH_LONG).show();
                     return;
-                }else{
-                    if(_editName.getText().toString().equals("")){
+                }else {
+                    if (_editName.getText().toString().equals("")) {
                         Toast.makeText(getContext(), "카메라 이름 확인이 필요합니다.", Toast.LENGTH_LONG).show();
                         return;
                     }
 
-                    if(port < 1){
+                    if (port < 1) {
                         Toast.makeText(getContext(), "포트 확인이 필요합니다.", Toast.LENGTH_LONG).show();
                         return;
                     }
 
-                    SharedPreferences.Editor edit = _pref.edit();
-
-                    edit.putString(Common.NAME_KEY, _editName.getText().toString());
-                    edit.putString(Common.IP_KEY, ip);
-                    edit.putInt(Common.PORT_KEY, port);
-                    edit.commit();
-                    Toast.makeText(getContext(), "저장완료 : "+ip, Toast.LENGTH_LONG).show();
+                    _listener.onSaved(ip, port, _editName.getText().toString());
                 }
 
                 break;

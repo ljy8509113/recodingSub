@@ -20,7 +20,9 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.Socket;
 
-public class MainActivity extends Activity {
+import play.and.eat.com.recording.play.and.eat.com.recording.listener.SettingListener;
+
+public class MainActivity extends Activity implements SettingListener{
 
     DevicePolicyManager _devicePolicyManager;
     RecodingFragment _frameRecode;
@@ -32,9 +34,11 @@ public class MainActivity extends Activity {
     private BufferedReader networkReader;
     private BufferedWriter networkWriter;
 
-    private String ip = "xxx.xxx.xxx.xxx"; // IP
-    private int port = 9999; // PORT번호
+    private String _ip = "xxx.xxx.xxx.xxx"; // IP
+    private int _port = 9999; // PORT번호
     private String html = "";
+    SharedPreferences _pref;
+    String _userName;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,10 +47,13 @@ public class MainActivity extends Activity {
         _devicePolicyManager= (DevicePolicyManager) getApplicationContext().getSystemService(Context.DEVICE_POLICY_SERVICE);
 
         if (null == savedInstanceState) {
-            _frameRecode = RecodingFragment.newInstance(this);
+            _frameRecode = RecodingFragment.newInstance(this, this);
             getFragmentManager().beginTransaction().replace(R.id.container, _frameRecode).commit();
         }
-
+        _pref = getSharedPreferences(Common.SHARE_DATA_KEY, Context.MODE_PRIVATE);
+        _ip = _pref.getString(Common.IP_KEY, "");
+        _port = _pref.getInt(Common.PORT_KEY, 0);
+        _userName = _pref.getString(Common.NAME_KEY,"No Name");
         connection();
     }
 
@@ -64,32 +71,25 @@ public class MainActivity extends Activity {
         _devicePolicyManager.lockNow();
     }
 
-    public void startRecoding(){
-        _frameRecode.startRecordingVideo();
-    }
-
-    public void stopRecoding(){
-        _frameRecode.stopRecordingVideo();
-    }
-
     public void connection(){
-        SharedPreferences pref = getSharedPreferences(Common.SHARE_DATA_KEY, Context.MODE_PRIVATE);
-        String ip = pref.getString(Common.IP_KEY, "");
-        int port = pref.getInt(Common.PORT_KEY, 0);
-
-        if(ip.equals("")){
+        if(_ip.equals("")){
             Toast.makeText(this, "서버와의 연결이 필요합니다.", Toast.LENGTH_LONG).show();
         }else{
             mHandler = new Handler();
-            try {
-                setSocket(ip, port);
-            } catch (IOException e1) {
-                e1.printStackTrace();
-            }
-
+            startSocket.start();
             checkUpdate.start();
         }
     }
+
+    private Thread startSocket = new Thread(){
+        public void run(){
+            try {
+                setSocket(_ip, _port);
+            } catch (IOException e1) {
+                e1.printStackTrace();
+            }
+        }
+    };
 
     private Thread checkUpdate = new Thread() {
 
@@ -132,5 +132,47 @@ public class MainActivity extends Activity {
     public void sendMessage(String msg){
         PrintWriter out = new PrintWriter(networkWriter, true);
         out.println(msg);
+    }
+
+    @Override
+    public void onSaved(String ip, int port, String userName) {
+        Log.d("lee - ", ip + " : "+port+" // "+userName);
+
+        SharedPreferences.Editor edit = _pref.edit();
+        String saveIp = _pref.getString(Common.IP_KEY, "");
+        int savePort = _pref.getInt(Common.PORT_KEY, 0);
+
+        boolean isRestartSocket = false;
+        if(!ip.equals(saveIp)) {
+            isRestartSocket = true;
+            edit.putString(Common.IP_KEY, ip);
+        }
+        if(port != savePort){
+            isRestartSocket = true;
+            edit.putInt(Common.PORT_KEY, port);
+        }
+
+        edit.putString(Common.NAME_KEY, userName);
+        edit.commit();
+
+        _ip = ip;
+        _port = port;
+        _userName = userName;
+
+        if(isRestartSocket){
+            startSocket.interrupt();
+            checkUpdate.interrupt();
+            connection();
+        }
+
+        Toast.makeText(this, "저장완료 : "+ip, Toast.LENGTH_LONG).show();
+
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        startSocket.interrupt();
+        checkUpdate.interrupt();
     }
 }
