@@ -1,178 +1,157 @@
 package play.and.eat.com.recording;
 
 import android.app.Activity;
-import android.app.admin.DeviceAdminReceiver;
 import android.app.admin.DevicePolicyManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.os.Handler;
+import android.os.IBinder;
 import android.util.Log;
 import android.widget.Toast;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.net.Socket;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import play.and.eat.com.recording.play.and.eat.com.recording.listener.SettingListener;
 
-public class MainActivity extends Activity implements SettingListener{
+public class MainActivity extends Activity implements SettingListener {
 
     DevicePolicyManager _devicePolicyManager;
     RecodingFragment _frameRecode;
 
-    private Handler mHandler;
-
-    private Socket socket;
-
-    private BufferedReader networkReader;
-    private BufferedWriter networkWriter;
-
     private String _ip = "xxx.xxx.xxx.xxx"; // IP
     private int _port = 9999; // PORT번호
-    private String html = "";
     SharedPreferences _pref;
     String _userName;
+    boolean _isTeacher = false;
+    String _uuid = null;
+
+    KeepAliveService mService = null;
+    TCPClient _client;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        _devicePolicyManager= (DevicePolicyManager) getApplicationContext().getSystemService(Context.DEVICE_POLICY_SERVICE);
+
+        _devicePolicyManager = (DevicePolicyManager) getApplicationContext().getSystemService(Context.DEVICE_POLICY_SERVICE);
 
         if (null == savedInstanceState) {
             _frameRecode = RecodingFragment.newInstance(this, this);
             getFragmentManager().beginTransaction().replace(R.id.container, _frameRecode).commit();
         }
-        _pref = getSharedPreferences(Common.SHARE_DATA_KEY, Context.MODE_PRIVATE);
-        _ip = _pref.getString(Common.IP_KEY, "");
-        _port = _pref.getInt(Common.PORT_KEY, 0);
-        _userName = _pref.getString(Common.NAME_KEY,"No Name");
-        connection();
+
+        Intent Service = new Intent(this, KeepAliveService.class);
+        bindService(Service, mConnection, Context.BIND_AUTO_CREATE);
+
     }
 
-    public void checkAdmin(){
+    //서비스 커넥션 선언.
+    private ServiceConnection mConnection = new ServiceConnection() {
+        // Called when the connection with the service is established
+        public void onServiceConnected(ComponentName className, IBinder service) {
+            KeepAliveService.MainServiceBinder binder = (KeepAliveService.MainServiceBinder) service;
+            mService = binder.getService(); //서비스 받아옴
+            mService.registerCallback(mCallback); //콜백 등록
+        }
+
+        // Called when the connection with the service disconnects unexpectedly
+        public void onServiceDisconnected(ComponentName className) {
+            mService = null;
+        }
+    };
+
+//서비스에서 아래의 콜백 함수를 호출하며, 콜백 함수에서는 액티비티에서 처리할 내용 입력
+    private KeepAliveService.ICallback mCallback = new KeepAliveService.ICallback() {
+        public void recvData(String result) {
+            //처리할 일들..
+            try{
+                JSONObject obj = new JSONObject(result);
+                if(obj.getString("id").equals("recode")){
+                    Log.d("녹화 == ","1");
+//                    if(!_frameRecode.isRecording())
+//                        _frameRecode.startRecordingVideo();
+
+                }else if(obj.getString("id").equals("stop")){
+                    Log.d("중지 == ","2");
+//                    if(_frameRecode.isRecording())
+//                        _frameRecode.stopRecordingVideo();
+                }
+            }catch (JSONException e){
+                e.printStackTrace();
+            }
+        }
+    };
+
+
+    public void checkAdmin() {
         ComponentName componentName = new ComponentName(getApplicationContext(), ShutdownConfigAdminReceiver.class);
 
-        if(!_devicePolicyManager.isAdminActive(componentName)) {
+        if (!_devicePolicyManager.isAdminActive(componentName)) {
             Intent intent = new Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN);
             intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, componentName);
             startActivityForResult(intent, 0);
         }
+
+        _pref = getSharedPreferences(Common.SHARE_DATA_KEY, Context.MODE_PRIVATE);
+        _ip = _pref.getString(Common.IP_KEY, "");
+        _port = _pref.getInt(Common.PORT_KEY, 0);
+        _userName = _pref.getString(Common.NAME_KEY, "No Name");
+        _isTeacher = _pref.getBoolean(Common.IS_TEACHER_KEY, false);
+        _uuid = _frameRecode.getUUID(this);
+
+        Log.d("lee - ", "uuid : " + _uuid);
+        connection();
+
     }
 
-    public void offScreen(){
+    public void offScreen() {
         _devicePolicyManager.lockNow();
     }
 
-    public void connection(){
-        if(_ip.equals("")){
+    public void connection() {
+        if (_ip.equals("")) {
             Toast.makeText(this, "서버와의 연결이 필요합니다.", Toast.LENGTH_LONG).show();
-        }else{
-            mHandler = new Handler();
-            startSocket.start();
-            checkUpdate.start();
+        } else {
+            mService.myServiceFunc(_ip, _port, _userName, _uuid, _isTeacher);
         }
-    }
-
-    private Thread startSocket = new Thread(){
-        public void run(){
-            try {
-                setSocket(_ip, _port);
-            } catch (IOException e1) {
-                e1.printStackTrace();
-            }
-        }
-    };
-
-    private Thread checkUpdate = new Thread() {
-
-        public void run() {
-            try {
-                String line;
-                Log.w("ChattingStart", "Start Thread");
-                while (true) {
-                    Log.w("Chatting is running", "chatting is running");
-                    line = networkReader.readLine();
-                    html = line;
-                    mHandler.post(showUpdate);
-                }
-            } catch (Exception e) {
-
-            }
-        }
-    };
-
-    private Runnable showUpdate = new Runnable() {
-
-        public void run() {
-            Toast.makeText(MainActivity.this, "Coming word: " + html, Toast.LENGTH_SHORT).show();
-        }
-
-    };
-
-    public void setSocket(String ip, int port) throws IOException {
-
-        try {
-            socket = new Socket(ip, port);
-            networkWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
-            networkReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-        } catch (IOException e) {
-            System.out.println(e);
-            e.printStackTrace();
-        }
-    }
-
-    public void sendMessage(String msg){
-        PrintWriter out = new PrintWriter(networkWriter, true);
-        out.println(msg);
     }
 
     @Override
-    public void onSaved(String ip, int port, String userName) {
-        Log.d("lee - ", ip + " : "+port+" // "+userName);
+    public void onSaved(String ip, int port, String userName, boolean isTeacher) {
+        Log.d("lee - ", ip + " : " + port + " // " + userName);
 
         SharedPreferences.Editor edit = _pref.edit();
         String saveIp = _pref.getString(Common.IP_KEY, "");
         int savePort = _pref.getInt(Common.PORT_KEY, 0);
 
-        boolean isRestartSocket = false;
-        if(!ip.equals(saveIp)) {
-            isRestartSocket = true;
-            edit.putString(Common.IP_KEY, ip);
-        }
-        if(port != savePort){
-            isRestartSocket = true;
-            edit.putInt(Common.PORT_KEY, port);
-        }
-
-        edit.putString(Common.NAME_KEY, userName);
-        edit.commit();
-
         _ip = ip;
         _port = port;
         _userName = userName;
+        _isTeacher = isTeacher;
 
-        if(isRestartSocket){
-            startSocket.interrupt();
-            checkUpdate.interrupt();
+        if (!ip.equals(saveIp) || port != savePort || !userName.equals(_userName) || isTeacher != _isTeacher) {
+            edit.putInt(Common.PORT_KEY, port);
+            edit.putString(Common.IP_KEY, ip);
+            edit.putBoolean(Common.IS_TEACHER_KEY, isTeacher);
+            edit.putString(Common.NAME_KEY, userName);
+            edit.commit();
+
             connection();
         }
 
-        Toast.makeText(this, "저장완료 : "+ip, Toast.LENGTH_LONG).show();
-
+        Toast.makeText(this, "저장완료 : " + ip, Toast.LENGTH_LONG).show();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        startSocket.interrupt();
-        checkUpdate.interrupt();
+
+        Intent intent = new Intent(this, KeepAliveService.class);
+        stopService(intent);
     }
+
 }

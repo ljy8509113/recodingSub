@@ -82,7 +82,7 @@ public class SettingView extends FrameLayout implements View.OnClickListener {
         if(ip.equals("") == false){
             _editIp.setText(ip);
             _editName.setText(name);
-            _editPort.setText(port);
+            _editPort.setText(port + "");
             if(isTeacher){
                 _radioGroup.check(R.id.radio_0);
             }else{
@@ -100,11 +100,11 @@ public class SettingView extends FrameLayout implements View.OnClickListener {
             case R.id.button_save :
                 int selectedId = _radioGroup.getCheckedRadioButtonId();
 
-                if(selectedId == R.id.radio_0){
-                    _pref.edit().putBoolean(Common.IS_TEACHER_KEY, true);
-                }else{
-                    _pref.edit().putBoolean(Common.IS_TEACHER_KEY, false);
-                }
+//                if(selectedId == R.id.radio_0){
+//                    _pref.edit().putBoolean(Common.IS_TEACHER_KEY, true);
+//                }else{
+//                    _pref.edit().putBoolean(Common.IS_TEACHER_KEY, false);
+//                }
 
                 String validIp = "^([1-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(\\.([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])){3}$";
                 String ip = _editIp.getText().toString();
@@ -124,7 +124,7 @@ public class SettingView extends FrameLayout implements View.OnClickListener {
                         return;
                     }
 
-                    _listener.onSaved(ip, port, _editName.getText().toString());
+                    _listener.onSaved(ip, port, _editName.getText().toString(), selectedId == R.id.radio_0);
                 }
 
                 break;
