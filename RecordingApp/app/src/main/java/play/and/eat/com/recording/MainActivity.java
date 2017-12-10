@@ -30,7 +30,6 @@ public class MainActivity extends Activity implements SettingListener {
     String _uuid = null;
 
     KeepAliveService mService = null;
-    TCPClient _client;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,8 +45,8 @@ public class MainActivity extends Activity implements SettingListener {
 
         Intent Service = new Intent(this, KeepAliveService.class);
         bindService(Service, mConnection, Context.BIND_AUTO_CREATE);
-
     }
+
 
     //서비스 커넥션 선언.
     private ServiceConnection mConnection = new ServiceConnection() {
@@ -64,28 +63,41 @@ public class MainActivity extends Activity implements SettingListener {
         }
     };
 
-//서비스에서 아래의 콜백 함수를 호출하며, 콜백 함수에서는 액티비티에서 처리할 내용 입력
+    //서비스에서 아래의 콜백 함수를 호출하며, 콜백 함수에서는 액티비티에서 처리할 내용 입력
     private KeepAliveService.ICallback mCallback = new KeepAliveService.ICallback() {
         public void recvData(String result) {
             //처리할 일들..
-            try{
+            try {
                 JSONObject obj = new JSONObject(result);
-                if(obj.getString("id").equals("recode")){
-                    Log.d("녹화 == ","1");
-//                    if(!_frameRecode.isRecording())
-//                        _frameRecode.startRecordingVideo();
+                if (obj.getString("id").equals("recode")) {
+                    Log.d("녹화 == ", "1");
+                    if (!_frameRecode.isRecording()){
+                        runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            _frameRecode.startRecordingVideo();
+                        }
+                    });
+                    }
 
-                }else if(obj.getString("id").equals("stop")){
-                    Log.d("중지 == ","2");
-//                    if(_frameRecode.isRecording())
-//                        _frameRecode.stopRecordingVideo();
+                } else if (obj.getString("id").equals("stop")) {
+                    Log.d("중지 == ", "2");
+                    if (_frameRecode.isRecording()){
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                _frameRecode.stopRecordingVideo();
+                            }
+                        });
+                    }
+                }else if(obj.getString("id").equals("file")){
+                    mService.sendFile(Common.getRootPath());
                 }
-            }catch (JSONException e){
+            } catch (JSONException e) {
                 e.printStackTrace();
             }
         }
     };
-
 
     public void checkAdmin() {
         ComponentName componentName = new ComponentName(getApplicationContext(), ShutdownConfigAdminReceiver.class);
@@ -102,10 +114,10 @@ public class MainActivity extends Activity implements SettingListener {
         _userName = _pref.getString(Common.NAME_KEY, "No Name");
         _isTeacher = _pref.getBoolean(Common.IS_TEACHER_KEY, false);
         _uuid = _frameRecode.getUUID(this);
+        _frameRecode._userName = _userName;
 
         Log.d("lee - ", "uuid : " + _uuid);
         connection();
-
     }
 
     public void offScreen() {
@@ -132,6 +144,7 @@ public class MainActivity extends Activity implements SettingListener {
         _port = port;
         _userName = userName;
         _isTeacher = isTeacher;
+        _frameRecode._userName = userName;
 
         if (!ip.equals(saveIp) || port != savePort || !userName.equals(_userName) || isTeacher != _isTeacher) {
             edit.putInt(Common.PORT_KEY, port);
@@ -142,7 +155,6 @@ public class MainActivity extends Activity implements SettingListener {
 
             connection();
         }
-
         Toast.makeText(this, "저장완료 : " + ip, Toast.LENGTH_LONG).show();
     }
 
@@ -152,6 +164,6 @@ public class MainActivity extends Activity implements SettingListener {
 
         Intent intent = new Intent(this, KeepAliveService.class);
         stopService(intent);
+        unbindService(mConnection);
     }
-
 }

@@ -9,6 +9,12 @@ import android.util.Log;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+
 import play.and.eat.com.recording.play.and.eat.com.recording.listener.TCPClientListener;
 
 /**
@@ -35,12 +41,12 @@ public class KeepAliveService extends Service implements TCPClientListener {
     @Override
     public void onCreate() {
         super.onCreate();
-        _client = new TCPClient();
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.i("서비스호출", "onStartCommand()실행됨");
+
         return super.onStartCommand(intent, flags, startId);
     }
 
@@ -96,10 +102,59 @@ public class KeepAliveService extends Service implements TCPClientListener {
         _userName = userName;
         _uuid = uuid;
         _isTeacher = isTeacher;
-        _client.Connect(_ip, port, this);
+        Log.d("lee - ", "myServiceFunc");
+        _client = new TCPClient();
+        _client.Connect(_ip, _port, this);
     }
 
     public void requestApi(JSONObject obj){
         _client.WriteCommand(obj.toString());
+    }
+
+    String _filePath = null;
+    File _list [] = null;
+
+    public boolean sendFile(String path){
+        _filePath = path;
+        File f = new File(path);
+        _list = f.listFiles();
+
+        if(_list != null && _list.length > 0){
+//            try{
+//                byte [] data = fullyReadFileToBytes(_list[0]);
+//                _client.WriteData(data);
+//            }catch (FileNotFoundException e){
+//                e.printStackTrace();
+//            }catch (IOException e){
+//                e.printStackTrace();
+//            }
+
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+    byte[] fullyReadFileToBytes(File f) throws IOException {
+        int size = (int) f.length();
+        byte bytes[] = new byte[size];
+        byte tmpBuff[] = new byte[size];
+        FileInputStream fis= new FileInputStream(f);;
+        try {
+            int read = fis.read(bytes, 0, size);
+            if (read < size) {
+                int remain = size - read;
+                while (remain > 0) {
+                    read = fis.read(tmpBuff, 0, remain);
+                    System.arraycopy(tmpBuff, 0, bytes, size - remain, read);
+                    remain -= read;
+                }
+            }
+        }  catch (IOException e){
+            throw e;
+        } finally {
+            fis.close();
+        }
+        return bytes;
     }
 }

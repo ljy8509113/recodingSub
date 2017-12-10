@@ -44,6 +44,7 @@ import android.widget.Toast;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -92,8 +93,8 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
         INVERSE_ORIENTATIONS.append(Surface.ROTATION_270, 0);
     }
 
-    int _fileIndex = 0;
-    String RECORDED_FILE = "Default";
+//    int _fileIndex = 0;
+//    String RECORDED_FILE = "Default";
 
     /**
      * An {@link AutoFitTextureView} for camera preview.
@@ -186,6 +187,7 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
     Button _buttonSetting;
     MainActivity _activity;
     public SettingListener _listener;
+    public String _userName = "";
 
     private CameraDevice.StateCallback mStateCallback = new CameraDevice.StateCallback() {
 
@@ -606,6 +608,7 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
         mMediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.MPEG_4_SP);
         mMediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
         int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
+
         switch (mSensorOrientation) {
             case SENSOR_ORIENTATION_DEFAULT_DEGREES:
                 mMediaRecorder.setOrientationHint(DEFAULT_ORIENTATIONS.get(rotation));
@@ -654,19 +657,23 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
                 public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
                     mPreviewSession = cameraCaptureSession;
                     updatePreview();
-                    getActivity().runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            // UI
-                            mButtonVideo.setText(R.string.stop);
-                            mIsRecordingVideo = true;
+                    mButtonVideo.setText(R.string.stop);
+                    mIsRecordingVideo = true;
+                    mMediaRecorder.start();
 
-                            // Start recording
-                            mMediaRecorder.start();
-                            _activity.offScreen();
-
-                        }
-                    });
+                    _activity.offScreen();
+//                    getActivity().runOnUiThread(new Runnable() {
+//                        @Override
+//                        public void run() {
+//                            // UI
+//                            mButtonVideo.setText(R.string.stop);
+//                            mIsRecordingVideo = true;
+//
+//                            // Start recording
+//                            mMediaRecorder.start();
+//                            _activity.offScreen();
+//                        }
+//                    });
                 }
 
                 @Override
@@ -775,9 +782,11 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
     }
 
 
-    private String getFilename() {
-        _fileIndex++;
-        String newFilename = Common.getRootPath() + RECORDED_FILE +"_"+ _fileIndex + ".mp4";
+    public String getFilename() {
+//        _fileIndex++;
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+        String time = format.format(System.currentTimeMillis());
+        String newFilename = Common.getRootPath() + _userName +"_"+ time + ".mp4";
         return newFilename;
     }
 

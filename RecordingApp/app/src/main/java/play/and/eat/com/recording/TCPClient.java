@@ -199,6 +199,7 @@ public class TCPClient {
                     //Stop listening so we don't have e thread using up CPU-cycles when we're not expecting data
                     stopThreads();
                 } catch (Exception e) {
+                    Log.d("lee - socket",e.toString());
                     Disconnect(); //Gets stuck in a loop if we don't call this on error!
                 }
             }
@@ -265,9 +266,10 @@ public class TCPClient {
                         e.printStackTrace();
                     }
                     this.hasMessage = false;
-                    this.data = null;
+
                     long time = System.currentTimeMillis() - startTime;
-                    Log.d(TAG, "Command has been sent! Current duration: " + time + "ms");
+                    Log.d(TAG, "Command has been sent! Current duration: " + time + "ms // data : " + this.data.length);
+                    this.data = null;
                     if (!receiveThreadRunning)
                         startReceiving(); //Start the receiving thread if it's not already running
                 }
@@ -287,7 +289,7 @@ public class TCPClient {
 
                 //Start connecting to the server with 5000ms timeout
                 //This will block the thread until a connection is established
-                connectionSocket.connect(new InetSocketAddress(serverAddr, serverPort), 5000);
+                connectionSocket.connect(new InetSocketAddress(serverAddr, serverPort), 10000);
 
                 long time = System.currentTimeMillis() - startTime;
                 Log.d(TAG, "Connected! Current duration: " + time + "ms");
