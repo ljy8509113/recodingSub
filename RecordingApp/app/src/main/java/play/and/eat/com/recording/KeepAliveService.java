@@ -11,8 +11,6 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 
 import play.and.eat.com.recording.play.and.eat.com.recording.listener.TCPClientListener;
@@ -82,6 +80,15 @@ public class KeepAliveService extends Service implements TCPClientListener {
         mCallback.recvData(result);
     }
 
+    @Override
+    public void sendComplate() {
+        _list[sendIndex].delete();
+        sendIndex++;
+        if(_list.length-1 != sendIndex){
+            sendFile();
+        }
+    }
+
     //콜백 인터페이스 선언
     public interface ICallback {
         public void recvData(String result); //액티비티에서 선언한 콜백 함수.
@@ -113,48 +120,57 @@ public class KeepAliveService extends Service implements TCPClientListener {
 
     String _filePath = null;
     File _list [] = null;
-
-    public boolean sendFile(String path){
+    int sendIndex = 0;
+    public void sendFiles(String path){
         _filePath = path;
         File f = new File(path);
         _list = f.listFiles();
+        sendFile();
 
+//        if(_list != null && _list.length > 0){
+////            try{
+////                byte [] data = fullyReadFileToBytes(_list[0]);
+////                _client.WriteData(data);
+////            }catch (FileNotFoundException e){
+////                e.printStackTrace();
+////            }catch (IOException e){
+////                e.printStackTrace();
+////            }
+//
+//            _client.WriteData(_list);
+//
+//            return true;
+//        }else{
+//            return false;
+//        }
+    }
+
+    void sendFile(){
         if(_list != null && _list.length > 0){
-//            try{
-//                byte [] data = fullyReadFileToBytes(_list[0]);
-//                _client.WriteData(data);
-//            }catch (FileNotFoundException e){
-//                e.printStackTrace();
-//            }catch (IOException e){
-//                e.printStackTrace();
+            _client.WriteData(_list[sendIndex].getPath());
+        }
+    }
+
+//    byte[] fullyReadFileToBytes(File f) throws IOException {
+//        int size = (int) f.length();
+//        byte bytes[] = new byte[size];
+//        byte tmpBuff[] = new byte[size];
+//        FileInputStream fis= new FileInputStream(f);
+//        try {
+//            int read = fis.read(bytes, 0, size);
+//            if (read < size) {
+//                int remain = size - read;
+//                while (remain > 0) {
+//                    read = fis.read(tmpBuff, 0, remain);
+//                    System.arraycopy(tmpBuff, 0, bytes, size - remain, read);
+//                    remain -= read;
+//                }
 //            }
-
-            return true;
-        }else{
-            return false;
-        }
-    }
-
-    byte[] fullyReadFileToBytes(File f) throws IOException {
-        int size = (int) f.length();
-        byte bytes[] = new byte[size];
-        byte tmpBuff[] = new byte[size];
-        FileInputStream fis= new FileInputStream(f);;
-        try {
-            int read = fis.read(bytes, 0, size);
-            if (read < size) {
-                int remain = size - read;
-                while (remain > 0) {
-                    read = fis.read(tmpBuff, 0, remain);
-                    System.arraycopy(tmpBuff, 0, bytes, size - remain, read);
-                    remain -= read;
-                }
-            }
-        }  catch (IOException e){
-            throw e;
-        } finally {
-            fis.close();
-        }
-        return bytes;
-    }
+//        }  catch (IOException e){
+//            throw e;
+//        } finally {
+//            fis.close();
+//        }
+//        return bytes;
+//    }
 }

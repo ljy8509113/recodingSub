@@ -9,4 +9,5 @@ import org.json.JSONObject;
 public interface TCPClientListener {
     void connectionSuccess();
     void onReceiver(String result);
+    void sendComplate();
 }

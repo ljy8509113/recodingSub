@@ -4,6 +4,7 @@ package play.and.eat.com.recording;
  * Created by ljy on 2017-12-08.
  */
 
+import android.os.Environment;
 import android.os.Handler;
 import android.util.Log;
 
@@ -12,16 +13,24 @@ import org.json.JSONObject;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
 
 import play.and.eat.com.recording.play.and.eat.com.recording.listener.TCPClientListener;
 
@@ -37,10 +46,11 @@ public class TCPClient {
     //Threads to execute the Runnables above
     private Thread sendThread;
     private Thread receiveThread;
-    byte[] dataToSend;
+    //    byte[] dataToSend;
     private String severIp = "192.168.0.2";
     private int serverPort = 1234;
     TCPClientListener _listener;
+
 
     /**
      * Returns true if TCPClient is connected, else false
@@ -57,7 +67,7 @@ public class TCPClient {
     public void Connect(String ip, int port, TCPClientListener listener) {
         severIp = ip;
         serverPort = port;
-        dataToSend = null;
+//        dataToSend = null;
         _listener = listener;
         new Thread(new ConnectRunnable()).start();
     }
@@ -77,12 +87,12 @@ public class TCPClient {
     /**
      * Send data to server
      *
-     * @param data byte array to send
+     * @param path byte array to send
      */
-    public void WriteData(byte[] data) {
+    public void WriteData(String path) {
         if (isConnected()) {
             startSending();
-            sendRunnable.Send(data);
+            sendRunnable.Send(path);
         }
     }
 
@@ -185,21 +195,21 @@ public class TCPClient {
 
 
                     StringBuffer sb = new StringBuffer();
-                    byte [] b = new byte[1024];
-                    Log.d("lee - ",input.read(b) + "  /  int");
-                    for (int n; (n = input.read(b)) != -1;) {
+                    byte[] b = new byte[1024];
+                    Log.d("lee - ", input.read(b) + "  /  int");
+                    for (int n; (n = input.read(b)) != -1; ) {
                         Log.d(TAG, "result 1: " + sb.toString());
                         sb.append(new String(b, 0, n));
                         _listener.onReceiver(sb.toString());
                         sb = new StringBuffer();
                     }
-                    Log.d(TAG, "result 2: "+ sb.toString());
+                    Log.d(TAG, "result 2: " + sb.toString());
 
 
                     //Stop listening so we don't have e thread using up CPU-cycles when we're not expecting data
                     stopThreads();
                 } catch (Exception e) {
-                    Log.d("lee - socket",e.toString());
+                    Log.d("lee - socket", e.toString());
                     Disconnect(); //Gets stuck in a loop if we don't call this on error!
                 }
             }
@@ -212,9 +222,14 @@ public class TCPClient {
     public class SendRunnable implements Runnable {
 
         byte[] data;
+        String path = "";
         private OutputStream out;
         private boolean hasMessage = false;
         int dataType = 1;
+
+        DataOutputStream dos;
+        FileInputStream fis;
+        BufferedInputStream bis;
 
         public SendRunnable(Socket server) {
             try {
@@ -227,10 +242,11 @@ public class TCPClient {
         /**
          * Send data as bytes to the server
          *
-         * @param bytes
+         * @param path
          */
-        public void Send(byte[] bytes) {
-            this.data = bytes;
+        public void Send(String path) {
+            this.data = "file".getBytes();
+            this.path = path;
             dataType = TCPCommands.TYPE_FILE_CONTENT;
             this.hasMessage = true;
         }
@@ -252,19 +268,68 @@ public class TCPClient {
             while (!Thread.currentThread().isInterrupted() && isConnected()) {
                 if (this.hasMessage) {
                     startTime = System.currentTimeMillis();
-                    try {
+                    if (dataType == TCPCommands.TYPE_FILE_CONTENT) {
+                        try {
+
+                            // 파일 내용을 읽으면서 전송
+                            File f = new File(this.path);
+                            fis = new FileInputStream(f);
+                            bis = new BufferedInputStream(fis);
+
+                            int len;
+                            int size = (int)f.length();
+                            byte[] headerByte = ByteBuffer.allocate(4).putInt(dataType).array();
+                            byte[] bodyData = new byte[size];
+                            byte[] sendData = new byte[size + headerByte.length];
+
+                            System.arraycopy(headerByte, 0, sendData, 0, headerByte.length);
+                            System.arraycopy(bodyData,0, sendData, headerByte.length, bodyData.length);
+
+                            while ((len = bis.read(sendData)) != -1) {
+                                dos.write(sendData, 0, len);
+                                Log.d("lee - ", "전송중 : " + len + " // 전체 : " + size);
+                            }
+
+                            dos.flush();
+                            dos.close();
+                            bis.close();
+                            fis.close();
+
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        } finally {
+                            Log.d("lee - ", "전송완료");
+                            _listener.sendComplate();
+                        }
+
+                    } else {
+                        try {
 //                        //Send the length of the data to be sent
 //                        this.out.write(ByteBuffer.allocate(4).putInt(data.length).array());
 //                        //Send the type of the data to be sent
 //                        this.out.write(ByteBuffer.allocate(4).putInt(dataType).array());
-                        //Send the data
-                        this.out.write(data, 0, data.length);
-                        //Flush the stream to be sure all bytes has been written out
-                        this.out.flush();
+                            //Send the data
 
-                    } catch (IOException e) {
-                        e.printStackTrace();
+                            byte[] headerByte = IntToByteArray(dataType);
+                            byte[] sendData = new byte[data.length + headerByte.length];
+
+                            System.arraycopy(headerByte, 0, sendData, 0, headerByte.length);
+                            System.arraycopy(this.data,0, sendData, headerByte.length, this.data.length);
+
+                            String str1 = new String(sendData,0,sendData.length);
+                            int str2 = ByteBuffer.wrap(headerByte).getInt();
+
+                            Log.d("lee - ", str1 + " : length : " + headerByte.length+ "// " + str2);
+
+                            this.out.write(sendData, 0, sendData.length);
+                            //Flush the stream to be sure all bytes has been written out
+                            this.out.flush();
+
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                     }
+
                     this.hasMessage = false;
 
                     long time = System.currentTimeMillis() - startTime;
@@ -308,6 +373,17 @@ public class TCPClient {
         public static String CMD_REQUEST_FILES = "server_get_files"; //When client request a list of files in that folder
         public static String CMD_REQUEST_FILES_RESPONSE = "server_get_files_response"; //When server respons with a list of files
         public static String CMD_REQUEST_FILE_DOWNLOAD = "server_download_file"; //When client request a file to be transfererad from the server.
-
     }
+
+    public byte[] IntToByteArray( int data ) {
+        byte[] result = new byte[4];
+
+        result[0] = (byte) ((data & 0xFF000000) >> 24);
+        result[1] = (byte) ((data & 0x00FF0000) >> 16);
+        result[2] = (byte) ((data & 0x0000FF00) >> 8);
+        result[3] = (byte) ((data & 0x000000FF) >> 0);
+
+        return result;
+    }
+
 }

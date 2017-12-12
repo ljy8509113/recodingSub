@@ -91,7 +91,7 @@ public class MainActivity extends Activity implements SettingListener {
                         });
                     }
                 }else if(obj.getString("id").equals("file")){
-                    mService.sendFile(Common.getRootPath());
+                    mService.sendFiles(Common.getRootPath());
                 }
             } catch (JSONException e) {
                 e.printStackTrace();
