@@ -82,11 +82,16 @@ public class KeepAliveService extends Service implements TCPClientListener {
 
     @Override
     public void sendComplate() {
-        _list[sendIndex].delete();
         sendIndex++;
-        if(_list.length-1 != sendIndex){
+        if(_list.length > sendIndex){
             sendFile();
         }
+//        if (_list[sendIndex].delete()) {
+//            sendIndex++;
+//            if (_list.length - 1 != sendIndex) {
+//                sendFile();
+//            }
+//        }
     }
 
     //콜백 인터페이스 선언
@@ -121,6 +126,7 @@ public class KeepAliveService extends Service implements TCPClientListener {
     String _filePath = null;
     File _list [] = null;
     int sendIndex = 0;
+
     public void sendFiles(String path){
         _filePath = path;
         File f = new File(path);
