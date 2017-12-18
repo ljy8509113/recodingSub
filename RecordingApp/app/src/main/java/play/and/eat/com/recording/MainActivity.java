@@ -28,6 +28,7 @@ public class MainActivity extends Activity implements SettingListener {
     String _userName;
     boolean _isTeacher = false;
     String _uuid = null;
+    int _ftpPort = 21;
 
     KeepAliveService mService = null;
 
@@ -115,6 +116,7 @@ public class MainActivity extends Activity implements SettingListener {
         _isTeacher = _pref.getBoolean(Common.IS_TEACHER_KEY, false);
         _uuid = _frameRecode.getUUID(this);
         _frameRecode._userName = _userName;
+        _ftpPort = _pref.getInt(Common.FTP_PORT, 21);
 
         Log.d("lee - ", "uuid : " + _uuid);
         connection();
@@ -128,12 +130,12 @@ public class MainActivity extends Activity implements SettingListener {
         if (_ip.equals("")) {
             Toast.makeText(this, "서버와의 연결이 필요합니다.", Toast.LENGTH_LONG).show();
         } else {
-            mService.myServiceFunc(_ip, _port, _userName, _uuid, _isTeacher);
+            mService.myServiceFunc(_ip, _port, _userName, _uuid, _isTeacher, _ftpPort);
         }
     }
 
     @Override
-    public void onSaved(String ip, int port, String userName, boolean isTeacher) {
+    public void onSaved(String ip, int port, String userName, boolean isTeacher, int ftpPort) {
         Log.d("lee - ", ip + " : " + port + " // " + userName);
 
         SharedPreferences.Editor edit = _pref.edit();
@@ -145,6 +147,12 @@ public class MainActivity extends Activity implements SettingListener {
         _userName = userName;
         _isTeacher = isTeacher;
         _frameRecode._userName = userName;
+
+        if(_ftpPort != ftpPort) {
+            _ftpPort = ftpPort;
+            edit.putInt(Common.FTP_PORT,ftpPort);
+            edit.commit();
+        }
 
         if (!ip.equals(saveIp) || port != savePort || !userName.equals(_userName) || isTeacher != _isTeacher) {
             edit.putInt(Common.PORT_KEY, port);

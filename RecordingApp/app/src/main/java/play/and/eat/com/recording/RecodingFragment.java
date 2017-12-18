@@ -710,8 +710,8 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
     }
 
     @Override
-    public void onSaved(String ip, int port, String userName, boolean isTeacher) {
-        _listener.onSaved(ip, port, userName, isTeacher);
+    public void onSaved(String ip, int port, String userName, boolean isTeacher, int ftpPort) {
+        _listener.onSaved(ip, port, userName, isTeacher, ftpPort);
     }
 
     /**

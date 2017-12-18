@@ -5,5 +5,5 @@ package play.and.eat.com.recording.play.and.eat.com.recording.listener;
  */
 
 public interface SettingListener {
-    void onSaved(String ip, int port, String userName, boolean isTeacher);
+    void onSaved(String ip, int port, String userName, boolean isTeacher, int ftpPort);
 }

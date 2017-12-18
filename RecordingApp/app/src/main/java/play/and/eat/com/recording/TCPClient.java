@@ -4,36 +4,14 @@ package play.and.eat.com.recording;
  * Created by ljy on 2017-12-08.
  */
 
-import android.os.Environment;
-import android.os.Handler;
 import android.util.Log;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
 
 import play.and.eat.com.recording.play.and.eat.com.recording.listener.TCPClientListener;
 
@@ -50,10 +28,10 @@ public class TCPClient {
     private Thread sendThread;
     private Thread receiveThread;
     //    byte[] dataToSend;
-    private String severIp = "192.168.0.2";
+    private String serverIp = "192.168.0.2";
     private int serverPort = 1234;
     TCPClientListener _listener;
-
+    String _uuid = "";
 
     /**
      * Returns true if TCPClient is connected, else false
@@ -67,9 +45,10 @@ public class TCPClient {
     /**
      * Open connection to server
      */
-    public void Connect(String ip, int port, TCPClientListener listener) {
-        severIp = ip;
+    public void Connect(String ip, int port, TCPClientListener listener, String uuid) {
+        serverIp = ip;
         serverPort = port;
+        _uuid = uuid;
 //        dataToSend = null;
         _listener = listener;
         new Thread(new ConnectRunnable()).start();
@@ -121,7 +100,7 @@ public class TCPClient {
     }
 
     private void startSending() {
-        sendRunnable = new SendRunnable(connectionSocket);
+        sendRunnable = new SendRunnable(connectionSocket, this.serverIp);
         sendThread = new Thread(sendRunnable);
         sendThread.start();
     }
@@ -131,7 +110,6 @@ public class TCPClient {
         receiveThread = new Thread(receiveRunnable);
         receiveThread.start();
     }
-
 
     public class ReceiveRunnable implements Runnable {
         private Socket sock;
@@ -229,8 +207,10 @@ public class TCPClient {
         private OutputStream out;
         private boolean hasMessage = false;
         int dataType = 1;
+        String ip = "";
 
-        public SendRunnable(Socket server) {
+        public SendRunnable(Socket server, String ip) {
+            this.ip = ip;
             try {
                 this.out = server.getOutputStream();
             } catch (IOException e) {
@@ -268,92 +248,7 @@ public class TCPClient {
                 if (this.hasMessage) {
                     startTime = System.currentTimeMillis();
                     if (dataType == TCPCommands.TYPE_FILE_CONTENT) {
-//                        try {
-//                            // 파일 내용을 읽으면서 전송
-//                            File f = new File(this.path);
-//                            FileInputStream fis = new FileInputStream(f);
-//                            BufferedOutputStream bis = new BufferedOutputStream(this.out);
-//
-//                            FileOutputStream dos = new FileOutputStream(f);
-//
-//                            int len;
-//                            int size = (int)f.length();
-//                            byte[] headerByte = (dataType + "").getBytes();//ByteBuffer.allocate(4).putInt(dataType).array();
-//                            String fileName = f.getName();
-//                            Log.d("lee - ", "file name : " + fileName);
-//                            byte[] fileNameData = fileName.getBytes();
-//                            byte[] bodyData = new byte[size];
-//                            byte[] sendData = new byte[size + headerByte.length + fileNameData.length];
-//
-//                            System.arraycopy(headerByte, 0, sendData, 0, headerByte.length);
-//                            System.arraycopy(fileNameData, 0, sendData, headerByte.length, fileNameData.length);
-//                            System.arraycopy(bodyData,0, sendData, headerByte.length + fileNameData.length, bodyData.length);
-//
-//                            Log.d("lee - ", "용량 : " + fis.read(sendData));
-//
-//                            while ((len = fis.read(sendData)) > 0) {
-//                                Log.d("lee - ", "전송중 : " + len + " // 전체 : " + size);
-//                                dos.write(sendData, 0, len);
-//                            }
-//
-//                            dos.flush();
-//                            dos.close();
-//                            bis.close();
-//                            fis.close();
-//
-//                            Log.d("lee - ", "전송완료 close");
-//                        } catch (IOException e) {
-//                            Log.d("lee - ", "file send error");
-//                            e.printStackTrace();
-//                        } finally {
-//                            Log.d("lee - ", "전송완료");
-//                            _listener.sendComplate();
-//                        }
 
-                        try {
-                            PrintWriter printOut = new PrintWriter(new BufferedWriter(new OutputStreamWriter(this.out)), true);
-                            printOut.flush();
-
-                            File f = new File(this.path);
-                            if(f.exists()){
-                                Log.d("lee - ", "file " + f.length());
-                            }
-
-                            int size = (int)f.length();
-                            byte[] headerByte = (dataType + "").getBytes();
-                            String fileName = f.getName();
-                            Log.d("lee - ", "file name : " + fileName);
-                            byte[] fileNameData = fileName.getBytes();
-                            byte[] bodyData = new byte[size];
-                            byte[] sendData = new byte[size + headerByte.length + fileNameData.length];
-
-                            System.arraycopy(headerByte, 0, sendData, 0, headerByte.length);
-                            System.arraycopy(fileNameData, 0, sendData, headerByte.length, fileNameData.length);
-                            System.arraycopy(bodyData,0, sendData, headerByte.length + fileNameData.length, bodyData.length);
-
-                            DataInputStream dis = new DataInputStream(new FileInputStream(f)); //읽을 파일 경로 적어 주시면 됩니다.
-                            DataOutputStream dos = new DataOutputStream(this.out);
-
-                            Log.d("lee - ", "bytes : " + sendData.length);
-                            Log.d("lee - ", "read : " + dis.read(sendData));
-                            long totalReadBytes = 0;
-
-                            int readBytes;
-                            while ( (readBytes = dis.read(sendData)) > 0) { //길이 정해주고 딱 맞게 서버로 보냅니다.
-                                Log.d("lee - ", "ing : " + readBytes);
-                                dos.write(sendData, 0, readBytes);
-                                totalReadBytes += readBytes;
-                                Log.d("lee - ", "ing : " + totalReadBytes);
-                            }
-
-                            dos.close();
-                            _listener.sendComplate();
-
-                        } catch (FileNotFoundException e) {
-                            e.printStackTrace();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
                     } else {
                         try {
 //                        //Send the length of the data to be sent
@@ -398,7 +293,7 @@ public class TCPClient {
         public void run() {
             try {
                 Log.d(TAG, "C: Connecting...");
-                InetAddress serverAddr = InetAddress.getByName(severIp);
+                InetAddress serverAddr = InetAddress.getByName(serverIp);
                 startTime = System.currentTimeMillis();
                 //Create a new instance of Socket
                 connectionSocket = new Socket();

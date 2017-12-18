@@ -13,19 +13,58 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 
+import play.and.eat.com.recording.play.and.eat.com.recording.listener.FileDownloadListener;
 import play.and.eat.com.recording.play.and.eat.com.recording.listener.TCPClientListener;
 
 /**
  * Created by ljy on 2017-12-09.
  */
 
-public class KeepAliveService extends Service implements TCPClientListener {
+public class KeepAliveService extends Service implements TCPClientListener, FileDownloadListener {
     public String _ip = "";
     public int _port = 0;
     TCPClient _client = null;
     String _userName;
     boolean _isTeacher = false;
     String _uuid = null;
+    int _fileMaxLength = 0;
+    int _ftpPort = 21;
+    FileUpLoad _fileUpload = null;
+
+    @Override
+    public void progress(String fileName, int persent) {
+        JSONObject data = new JSONObject();
+        try {
+            data.put("identifier", "progress");
+            data.put("persent", persent+"");
+            data.put("name", fileName);
+            data.put("device_id", _uuid);
+            _client.WriteCommand(data.toString());
+            Log.d("lee - ", "connectionSuccdee : "+data.toString());
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void downLoadComplate(String fileName) {
+        JSONObject data = new JSONObject();
+        try {
+            data.put("identifier", "downEnd");
+            data.put("max", _fileMaxLength+"");
+            data.put("current", sendIndex+"");
+            if (_uuid != null)
+                data.put("device_id", _uuid);
+            _client.WriteCommand(data.toString());
+            Log.d("lee - ", "connectionSuccdee : "+data.toString());
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        sendIndex++;
+        if(_list.length > sendIndex){
+            sendFile();
+        }
+    }
 
     //서비스 바인더 내부 클래스 선언
     public class MainServiceBinder extends Binder {
@@ -80,19 +119,19 @@ public class KeepAliveService extends Service implements TCPClientListener {
         mCallback.recvData(result);
     }
 
-    @Override
-    public void sendComplate() {
-        sendIndex++;
-        if(_list.length > sendIndex){
-            sendFile();
-        }
-//        if (_list[sendIndex].delete()) {
-//            sendIndex++;
-//            if (_list.length - 1 != sendIndex) {
-//                sendFile();
-//            }
+//    @Override
+//    public void sendComplate() {
+//        sendIndex++;
+//        if(_list.length > sendIndex){
+//            sendFile();
 //        }
-    }
+////        if (_list[sendIndex].delete()) {
+////            sendIndex++;
+////            if (_list.length - 1 != sendIndex) {
+////                sendFile();
+////            }
+////        }
+//    }
 
     //콜백 인터페이스 선언
     public interface ICallback {
@@ -101,22 +140,23 @@ public class KeepAliveService extends Service implements TCPClientListener {
 
     private ICallback mCallback;
 
-//액티비티에서 콜백 함수를 등록하기 위함.
+    //액티비티에서 콜백 함수를 등록하기 위함.
     public void registerCallback(ICallback cb) {
         mCallback = cb;
     }
 
-//액티비티에서 서비스 함수를 호출하기 위한 함수 생성
-    public void myServiceFunc(String ip, int port, String userName, String uuid, boolean isTeacher){
+    //액티비티에서 서비스 함수를 호출하기 위한 함수 생성
+    public void myServiceFunc(String ip, int port, String userName, String uuid, boolean isTeacher, int ftpPort){
         //서비스에서 처리할 내용
         _ip = ip;
         _port = port;
         _userName = userName;
         _uuid = uuid;
         _isTeacher = isTeacher;
+        _ftpPort = ftpPort;
         Log.d("lee - ", "myServiceFunc");
         _client = new TCPClient();
-        _client.Connect(_ip, _port, this);
+        _client.Connect(_ip, _port, this, _uuid);
     }
 
     public void requestApi(JSONObject obj){
@@ -128,32 +168,20 @@ public class KeepAliveService extends Service implements TCPClientListener {
     int sendIndex = 0;
 
     public void sendFiles(String path){
+        if(_fileUpload == null)
+            _fileUpload = new FileUpLoad(_ip, _ftpPort, "localhost", "dkssud", "utf-8", "./", this);
         _filePath = path;
         File f = new File(path);
         _list = f.listFiles();
         sendFile();
-
-//        if(_list != null && _list.length > 0){
-////            try{
-////                byte [] data = fullyReadFileToBytes(_list[0]);
-////                _client.WriteData(data);
-////            }catch (FileNotFoundException e){
-////                e.printStackTrace();
-////            }catch (IOException e){
-////                e.printStackTrace();
-////            }
-//
-//            _client.WriteData(_list);
-//
-//            return true;
-//        }else{
-//            return false;
-//        }
     }
 
     void sendFile(){
         if(_list != null && _list.length > 0){
-            _client.WriteData(_list[sendIndex].getPath());
+            //_client.WriteData(_list[sendIndex].getPath());
+            _fileUpload.login();
+            File f = new File(_list[sendIndex].getPath());
+            _fileUpload.uploadFile(f);
         }
     }
 

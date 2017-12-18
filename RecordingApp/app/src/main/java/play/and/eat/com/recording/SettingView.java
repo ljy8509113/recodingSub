@@ -32,6 +32,7 @@ public class SettingView extends FrameLayout implements View.OnClickListener {
     EditText _editPort;
     RadioGroup _radioGroup;
     Button _buttonSave;
+    EditText _editFtpPort;
 
     SharedPreferences _pref;
     public SettingListener _listener;
@@ -62,6 +63,7 @@ public class SettingView extends FrameLayout implements View.OnClickListener {
         _editPort = (EditText) v.findViewById(R.id.edit_port);
         _radioGroup = (RadioGroup)v.findViewById(R.id.radioGroup);
         _buttonSave = (Button)v.findViewById(R.id.button_save);
+        _editFtpPort = (EditText)v.findViewById(R.id.edit_ftp_port);
 
         _buttonBack.setOnClickListener(this);
         _buttonSave.setOnClickListener(this);
@@ -78,11 +80,13 @@ public class SettingView extends FrameLayout implements View.OnClickListener {
         boolean isTeacher = _pref.getBoolean(Common.IS_TEACHER_KEY, false);
         String name = _pref.getString(Common.NAME_KEY, "");
         int port = _pref.getInt(Common.PORT_KEY,0);
+        int ftpPort = _pref.getInt(Common.FTP_PORT, 21);
 
         if(ip.equals("") == false){
             _editIp.setText(ip);
             _editName.setText(name);
             _editPort.setText(port + "");
+            _editFtpPort.setText(ftpPort + "");
             if(isTeacher){
                 _radioGroup.check(R.id.radio_0);
             }else{
@@ -124,7 +128,8 @@ public class SettingView extends FrameLayout implements View.OnClickListener {
                         return;
                     }
 
-                    _listener.onSaved(ip, port, _editName.getText().toString(), selectedId == R.id.radio_0);
+                    int ftpPort = Integer.parseInt(_editFtpPort.getText().toString());
+                    _listener.onSaved(ip, port, _editName.getText().toString(), selectedId == R.id.radio_0, ftpPort);
                 }
 
                 break;
