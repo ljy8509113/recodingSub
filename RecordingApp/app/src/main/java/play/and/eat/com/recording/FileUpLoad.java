@@ -150,10 +150,15 @@ public class FileUpLoad implements CopyStreamListener{
 
     @Override
     public void bytesTransferred(long l, int i, long l1) {
-        int percent = (int)((l/fileLength) * 100);
-        _downListener.progress(_fileName, percent);
+        int percent = (int)( ((double)l/(double)fileLength)  * 100);
+        if(percent == 100){
+            _downListener.downLoadComplate(_fileName);
+        }else{
+            _downListener.progress(_fileName, percent);
+        }
+
         //Log.d("lee - ", "l : " + l + " // i" + i + " // l1 " +l1 );
-        Log.d("lee - ", "progress : " + (l/fileLength) + " // l : "+ l +" // total : " + fileLength);
+        //Log.d("lee - ", "progress : " + percent + " // l : "+ l +" // total : " + fileLength);
     }
 }
 

@@ -86,7 +86,7 @@ public class TCPClient {
     public void WriteCommand(String cmd) {
         if (isConnected()) {
             startSending();
-            Log.d("lee - ", cmd.getBytes().length + " // -----");
+            Log.d("lee - ", cmd.getBytes().length + " // ----- WriteCommand");
             sendRunnable.SendCMD(cmd.getBytes());
         }
     }
@@ -133,48 +133,6 @@ public class TCPClient {
 
                 startTime = System.currentTimeMillis();
                 try {
-//                    byte[] data = new byte[4];
-//                    //Read the first integer, it defines the length of the data to expect
-//                    input.read(data, 0, data.length);
-//                    int length = ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN).getInt();
-//
-//                    //Read the second integer, it defines the type of the data to expect
-//                    input.read(data, 0, data.length);
-//                    int type = ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN).getInt();
-
-//                    int read = 0;
-//                    int downloaded = 0;
-
-//                    if (type == TCPCommands.TYPE_CMD) {
-//                        //We're expecting a command/message from the server (Like a list of files)
-//                        //Allocate byte array large enough to contain the data to come
-//                        data = new byte[length];
-//                        StringBuilder sb = new StringBuilder();
-//                        InputStream bis = new BufferedInputStream(input);
-//
-//                        //Read until all data is read or until we have read the expected amount
-//                        while ((read = bis.read(data)) != -1) {
-//                            downloaded += read;
-//                            sb.append(new String(data, 0, read, "UTF-8")); //Append the data to the StringBuilder
-//                            if (downloaded == length) //We have what we expected, break out of the loop
-//                                break;
-//                        }
-//                    } else if (type == TCPCommands.TYPE_FILE_CONTENT) {
-//                        //We're expecting a file/raw bytes from the server (Like a file)
-//                        //We download the data 2048 bytes at the time
-//                        byte[] inputData = new byte[2048];
-//                        InputStream bis = new BufferedInputStream(input);
-//
-//                        //Read until all data is read or until we have read the expected amount
-//                        while ((read = bis.read(inputData)) != -1) {
-//                            //Buffer loop
-//                            downloaded += read;
-//                            if (downloaded == length)//We have what we expected, break out of the loop
-//                                break;
-//                        }
-//                    }
-
-
                     StringBuffer sb = new StringBuffer();
                     byte[] b = new byte[1024];
                     Log.d("lee - ", input.read(b) + "  /  int");
@@ -185,7 +143,6 @@ public class TCPClient {
                         sb = new StringBuffer();
                     }
                     Log.d(TAG, "result 2: " + sb.toString());
-
 
                     //Stop listening so we don't have e thread using up CPU-cycles when we're not expecting data
                     stopThreads();
@@ -247,33 +204,14 @@ public class TCPClient {
             while (!Thread.currentThread().isInterrupted() && isConnected()) {
                 if (this.hasMessage) {
                     startTime = System.currentTimeMillis();
-                    if (dataType == TCPCommands.TYPE_FILE_CONTENT) {
-
-                    } else {
-                        try {
-//                        //Send the length of the data to be sent
-//                        this.out.write(ByteBuffer.allocate(4).putInt(data.length).array());
-//                        //Send the type of the data to be sent
-//                        this.out.write(ByteBuffer.allocate(4).putInt(dataType).array());
-                            //Send the data
-
-                            byte[] headerByte = (dataType + "").getBytes();//IntToByteArray(dataType);
-                            byte[] sendData = new byte[data.length + headerByte.length];
-
-                            System.arraycopy(headerByte, 0, sendData, 0, headerByte.length);
-                            System.arraycopy(this.data,0, sendData, headerByte.length, this.data.length);
-
-                            String str1 = new String(sendData,0,sendData.length);
-
-                            Log.d("lee - ", str1 + " : length : ");
-
-                            this.out.write(sendData, 0, sendData.length);
-                            //Flush the stream to be sure all bytes has been written out
-                            this.out.flush();
-
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
+                    try {
+                        String str1 = new String(this.data,0,this.data.length);
+                        Log.d("lee - ", str1 + " : length : ");
+                        this.out.write(this.data, 0, this.data.length);
+                        //Flush the stream to be sure all bytes has been written out
+                        this.out.flush();
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
 
                     this.hasMessage = false;
@@ -316,20 +254,5 @@ public class TCPClient {
     public static class TCPCommands {
         public static int TYPE_CMD = 1; //For commands. They will be strings
         public static int TYPE_FILE_CONTENT = 2;//For files. They will be byte arrays
-        public static String CMD_REQUEST_FILES = "server_get_files"; //When client request a list of files in that folder
-        public static String CMD_REQUEST_FILES_RESPONSE = "server_get_files_response"; //When server respons with a list of files
-        public static String CMD_REQUEST_FILE_DOWNLOAD = "server_download_file"; //When client request a file to be transfererad from the server.
     }
-
-    public byte[] IntToByteArray( int data ) {
-        byte[] result = new byte[4];
-
-        result[0] = (byte) ((data & 0xFF000000) >> 24);
-        result[1] = (byte) ((data & 0x00FF0000) >> 16);
-        result[2] = (byte) ((data & 0x0000FF00) >> 8);
-        result[3] = (byte) ((data & 0x000000FF) >> 0);
-
-        return result;
-    }
-
 }

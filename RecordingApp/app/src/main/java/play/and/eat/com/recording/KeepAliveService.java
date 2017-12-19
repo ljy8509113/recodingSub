@@ -27,22 +27,27 @@ public class KeepAliveService extends Service implements TCPClientListener, File
     String _userName;
     boolean _isTeacher = false;
     String _uuid = null;
-    int _fileMaxLength = 0;
     int _ftpPort = 21;
-    FileUpLoad _fileUpload = null;
+
+    int _progress = 0;
 
     @Override
     public void progress(String fileName, int persent) {
-        JSONObject data = new JSONObject();
-        try {
-            data.put("identifier", "progress");
-            data.put("persent", persent+"");
-            data.put("name", fileName);
-            data.put("device_id", _uuid);
-            _client.WriteCommand(data.toString());
-            Log.d("lee - ", "connectionSuccdee : "+data.toString());
-        } catch (JSONException e) {
-            e.printStackTrace();
+       if(_progress < persent){
+            _progress = persent;
+            JSONObject data = new JSONObject();
+            try {
+                data.put("identifier", "progress");
+                data.put("persent", persent+"");
+                data.put("current", sendIndex+"");
+                data.put("max", _list.length+"");
+                data.put("name", fileName);
+                data.put("device_id", _uuid);
+                _client.WriteCommand(data.toString());
+                Log.d("lee - ", "connectionSuccdee : "+data.toString());
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -51,10 +56,10 @@ public class KeepAliveService extends Service implements TCPClientListener, File
         JSONObject data = new JSONObject();
         try {
             data.put("identifier", "downEnd");
-            data.put("max", _fileMaxLength+"");
+            data.put("max", _list.length+"");
             data.put("current", sendIndex+"");
-            if (_uuid != null)
-                data.put("device_id", _uuid);
+            data.put("device_id", _uuid);
+            data.put("name", fileName);
             _client.WriteCommand(data.toString());
             Log.d("lee - ", "connectionSuccdee : "+data.toString());
         } catch (JSONException e) {
@@ -63,6 +68,9 @@ public class KeepAliveService extends Service implements TCPClientListener, File
         sendIndex++;
         if(_list.length > sendIndex){
             sendFile();
+        }else{
+            sendIndex = 0;
+            _list = null;
         }
     }
 
@@ -83,7 +91,6 @@ public class KeepAliveService extends Service implements TCPClientListener, File
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.i("서비스호출", "onStartCommand()실행됨");
-
         return super.onStartCommand(intent, flags, startId);
     }
 
@@ -118,20 +125,6 @@ public class KeepAliveService extends Service implements TCPClientListener, File
         Log.d("lee - ", "onReceiver : " + result);
         mCallback.recvData(result);
     }
-
-//    @Override
-//    public void sendComplate() {
-//        sendIndex++;
-//        if(_list.length > sendIndex){
-//            sendFile();
-//        }
-////        if (_list[sendIndex].delete()) {
-////            sendIndex++;
-////            if (_list.length - 1 != sendIndex) {
-////                sendFile();
-////            }
-////        }
-//    }
 
     //콜백 인터페이스 선언
     public interface ICallback {
@@ -168,8 +161,6 @@ public class KeepAliveService extends Service implements TCPClientListener, File
     int sendIndex = 0;
 
     public void sendFiles(String path){
-        if(_fileUpload == null)
-            _fileUpload = new FileUpLoad(_ip, _ftpPort, "localhost", "dkssud", "utf-8", "./", this);
         _filePath = path;
         File f = new File(path);
         _list = f.listFiles();
@@ -179,32 +170,10 @@ public class KeepAliveService extends Service implements TCPClientListener, File
     void sendFile(){
         if(_list != null && _list.length > 0){
             //_client.WriteData(_list[sendIndex].getPath());
-            _fileUpload.login();
+            FileUpLoad fileUpload = new FileUpLoad(_ip, _ftpPort, "localhost", "dkssud", "utf-8", "./", this);
+            fileUpload.login();
             File f = new File(_list[sendIndex].getPath());
-            _fileUpload.uploadFile(f);
+            fileUpload.uploadFile(f);
         }
     }
-
-//    byte[] fullyReadFileToBytes(File f) throws IOException {
-//        int size = (int) f.length();
-//        byte bytes[] = new byte[size];
-//        byte tmpBuff[] = new byte[size];
-//        FileInputStream fis= new FileInputStream(f);
-//        try {
-//            int read = fis.read(bytes, 0, size);
-//            if (read < size) {
-//                int remain = size - read;
-//                while (remain > 0) {
-//                    read = fis.read(tmpBuff, 0, remain);
-//                    System.arraycopy(tmpBuff, 0, bytes, size - remain, read);
-//                    remain -= read;
-//                }
-//            }
-//        }  catch (IOException e){
-//            throw e;
-//        } finally {
-//            fis.close();
-//        }
-//        return bytes;
-//    }
 }
