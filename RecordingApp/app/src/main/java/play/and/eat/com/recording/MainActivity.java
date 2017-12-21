@@ -70,6 +70,7 @@ public class MainActivity extends Activity implements SettingListener {
             //처리할 일들..
             try {
                 JSONObject obj = new JSONObject(result);
+                Log.d("lee - ", "callback : " + obj.toString());
                 if (obj.getString("id").equals("recode")) {
                     Log.d("녹화 == ", "1");
                     if (!_frameRecode.isRecording()){
@@ -92,7 +93,11 @@ public class MainActivity extends Activity implements SettingListener {
                         });
                     }
                 }else if(obj.getString("id").equals("file")){
-                    mService.sendFiles(Common.getRootPath());
+                    if(mService.isSending) {
+                        Log.d("lee - ", "파일 전송중 ");
+                    }else {
+                        mService.sendFiles(Common.getRootPath());
+                    }
                 }
             } catch (JSONException e) {
                 e.printStackTrace();
@@ -173,5 +178,21 @@ public class MainActivity extends Activity implements SettingListener {
         Intent intent = new Intent(this, KeepAliveService.class);
         stopService(intent);
         unbindService(mConnection);
+    }
+
+    public void sendMsg(){
+        JSONObject data = new JSONObject();
+        try {
+            data.put("identifier", "user_info");
+            data.put("user", _isTeacher ? "T" : "S");
+            data.put("name", _userName);
+            if (_uuid != null)
+                data.put("device_id", _uuid);
+            Log.d("lee - ", "connectionSuccdee : "+data.toString());
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        mService.requestApi(data);
     }
 }

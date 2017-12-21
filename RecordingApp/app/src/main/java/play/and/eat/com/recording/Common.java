@@ -15,6 +15,8 @@ public class Common {
     public final static String NAME_KEY = "name";
     public final static String PORT_KEY = "port";
     public final static String FTP_PORT = "ftpPort";
+    public final static String FTP_ID = "ftpId";
+    public final static String FTP_PW = "ftpPass";
 
     public static String getRootPath(){
         String root = Environment.getExternalStorageDirectory().getAbsolutePath();

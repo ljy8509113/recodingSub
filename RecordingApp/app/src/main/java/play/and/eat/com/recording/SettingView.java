@@ -33,6 +33,8 @@ public class SettingView extends FrameLayout implements View.OnClickListener {
     RadioGroup _radioGroup;
     Button _buttonSave;
     EditText _editFtpPort;
+    EditText _editFTPId;
+    EditText _editFTPPw;
 
     SharedPreferences _pref;
     public SettingListener _listener;
@@ -65,6 +67,9 @@ public class SettingView extends FrameLayout implements View.OnClickListener {
         _buttonSave = (Button)v.findViewById(R.id.button_save);
         _editFtpPort = (EditText)v.findViewById(R.id.edit_ftp_port);
 
+        _editFTPId = (EditText)v.findViewById(R.id.edit_ftp_id);
+        _editFTPPw = (EditText)v.findViewById(R.id.edit_ftp_password);
+
         _buttonBack.setOnClickListener(this);
         _buttonSave.setOnClickListener(this);
 
@@ -81,12 +86,17 @@ public class SettingView extends FrameLayout implements View.OnClickListener {
         String name = _pref.getString(Common.NAME_KEY, "");
         int port = _pref.getInt(Common.PORT_KEY,0);
         int ftpPort = _pref.getInt(Common.FTP_PORT, 21);
+        String ftpId = _pref.getString(Common.FTP_ID,"");
+        String ftpPw = _pref.getString(Common.FTP_PW,"");
 
         if(ip.equals("") == false){
             _editIp.setText(ip);
             _editName.setText(name);
             _editPort.setText(port + "");
             _editFtpPort.setText(ftpPort + "");
+            _editFTPId.setText(ftpId);
+            _editFTPPw.setText(ftpPw);
+
             if(isTeacher){
                 _radioGroup.check(R.id.radio_0);
             }else{
@@ -127,6 +137,21 @@ public class SettingView extends FrameLayout implements View.OnClickListener {
                         Toast.makeText(getContext(), "포트 확인이 필요합니다.", Toast.LENGTH_LONG).show();
                         return;
                     }
+
+                    if(_editFTPId.getText().toString().equals("")){
+                        Toast.makeText(getContext(), "FTP ID 확인이 필요합니다.", Toast.LENGTH_LONG).show();
+                        return;
+                    }
+
+                    if(_editFTPPw.getText().toString().equals("")){
+                        Toast.makeText(getContext(), "FTP 패스워드 확인이 필요합니다.", Toast.LENGTH_LONG).show();
+                        return;
+                    }
+
+                    SharedPreferences.Editor edit = _pref.edit();
+                    edit.putString(Common.FTP_ID, _editFTPId.getText().toString());
+                    edit.putString(Common.FTP_PW, _editFTPPw.getText().toString());
+                    edit.commit();
 
                     int ftpPort = Integer.parseInt(_editFtpPort.getText().toString());
                     _listener.onSaved(ip, port, _editName.getText().toString(), selectedId == R.id.radio_0, ftpPort);

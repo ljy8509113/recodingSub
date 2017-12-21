@@ -325,11 +325,12 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.video: {
-                if (mIsRecordingVideo) {
-                    stopRecordingVideo();
-                } else {
-                    startRecordingVideo();
-                }
+//                if (mIsRecordingVideo) {
+//                    stopRecordingVideo();
+//                } else {
+//                    startRecordingVideo();
+//                }
+                _activity.sendMsg();
                 break;
             }
             case R.id.button_setting: {

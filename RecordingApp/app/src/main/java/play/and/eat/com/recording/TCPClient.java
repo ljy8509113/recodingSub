@@ -135,15 +135,13 @@ public class TCPClient {
                 try {
                     StringBuffer sb = new StringBuffer();
                     byte[] b = new byte[1024];
-                    Log.d("lee - ", input.read(b) + "  /  int");
+                    //Log.d("lee - ", input.read(b) + "  /  int");
                     for (int n; (n = input.read(b)) != -1; ) {
-                        Log.d(TAG, "result 1: " + sb.toString());
+                        //Log.d(TAG, "result 1: " + sb.toString());
                         sb.append(new String(b, 0, n));
                         _listener.onReceiver(sb.toString());
                         sb = new StringBuffer();
                     }
-                    Log.d(TAG, "result 2: " + sb.toString());
-
                     //Stop listening so we don't have e thread using up CPU-cycles when we're not expecting data
                     stopThreads();
                 } catch (Exception e) {
@@ -206,7 +204,8 @@ public class TCPClient {
                     startTime = System.currentTimeMillis();
                     try {
                         String str1 = new String(this.data,0,this.data.length);
-                        Log.d("lee - ", str1 + " : length : ");
+                        Log.d("lee - ", str1 + " : length : " + this.data.length);
+
                         this.out.write(this.data, 0, this.data.length);
                         //Flush the stream to be sure all bytes has been written out
                         this.out.flush();
@@ -242,12 +241,18 @@ public class TCPClient {
 
                 long time = System.currentTimeMillis() - startTime;
                 Log.d(TAG, "Connected! Current duration: " + time + "ms");
-                _listener.connectionSuccess();
+                //_listener.connectionSuccess();
 
             } catch (Exception e) {
                 e.printStackTrace();
             }
             Log.d(TAG, "Connetion thread stopped");
+            if(connectionSocket.isConnected()){
+                Log.d(TAG, "is connection success");
+                _listener.connectionSuccess();
+            }else{
+                Log.d(TAG, "is connection not");
+            }
         }
     }
 

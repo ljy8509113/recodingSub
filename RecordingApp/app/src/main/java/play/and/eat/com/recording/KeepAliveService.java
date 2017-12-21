@@ -1,10 +1,14 @@
 package play.and.eat.com.recording;
 
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Binder;
+import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
+import android.widget.Toast;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -30,6 +34,11 @@ public class KeepAliveService extends Service implements TCPClientListener, File
     int _ftpPort = 21;
 
     int _progress = 0;
+    SharedPreferences _pref;
+    String _ftpId = "";
+    String _ftpPw = "";
+
+    boolean isSending = false;
 
     @Override
     public void progress(String fileName, int persent) {
@@ -39,7 +48,7 @@ public class KeepAliveService extends Service implements TCPClientListener, File
             try {
                 data.put("identifier", "progress");
                 data.put("persent", persent+"");
-                data.put("current", sendIndex+"");
+                data.put("current", (sendIndex+1)+"");
                 data.put("max", _list.length+"");
                 data.put("name", fileName);
                 data.put("device_id", _uuid);
@@ -53,24 +62,34 @@ public class KeepAliveService extends Service implements TCPClientListener, File
 
     @Override
     public void downLoadComplate(String fileName) {
+        _progress = 0;
         JSONObject data = new JSONObject();
         try {
             data.put("identifier", "downEnd");
-            data.put("max", _list.length+"");
-            data.put("current", sendIndex+"");
+            data.put("max", _list.length + "");
+            data.put("current", (sendIndex+1) + "");
             data.put("device_id", _uuid);
             data.put("name", fileName);
             _client.WriteCommand(data.toString());
-            Log.d("lee - ", "connectionSuccdee : "+data.toString());
+            Log.d("lee - ", "connectionSuccdee : " + data.toString());
         } catch (JSONException e) {
             e.printStackTrace();
         }
+
         sendIndex++;
-        if(_list.length > sendIndex){
+        if (_list.length > sendIndex) {
             sendFile();
-        }else{
+        } else {
             sendIndex = 0;
             _list = null;
+            isSending = false;
+//            for(File f : _list){
+//                if (f.delete()) {
+//                    Log.d("lee - ", "삭제 성공 : " +  f.getName());
+//                } else {
+//                    Log.d("lee - ", "삭제 실패 : " +  f.getName());
+//                }
+//            }
         }
     }
 
@@ -106,6 +125,25 @@ public class KeepAliveService extends Service implements TCPClientListener, File
 
     @Override
     public void connectionSuccess() {
+
+//        JSONObject echo = new JSONObject();
+//        try{
+//            echo.put("identifier","echo");
+//            _client.WriteCommand(echo.toString());
+//        }catch (JSONException e){
+//            e.printStackTrace();
+//        }
+
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        _pref = getSharedPreferences(Common.SHARE_DATA_KEY, Context.MODE_PRIVATE);
+        _ftpId = _pref.getString(Common.FTP_ID,"");
+        _ftpPw = _pref.getString(Common.FTP_PW,"");
+
         JSONObject data = new JSONObject();
         try {
             data.put("identifier", "user_info");
@@ -118,6 +156,7 @@ public class KeepAliveService extends Service implements TCPClientListener, File
         } catch (JSONException e) {
             e.printStackTrace();
         }
+
     }
 
     @Override
@@ -170,10 +209,15 @@ public class KeepAliveService extends Service implements TCPClientListener, File
     void sendFile(){
         if(_list != null && _list.length > 0){
             //_client.WriteData(_list[sendIndex].getPath());
-            FileUpLoad fileUpload = new FileUpLoad(_ip, _ftpPort, "localhost", "dkssud", "utf-8", "./", this);
-            fileUpload.login();
-            File f = new File(_list[sendIndex].getPath());
-            fileUpload.uploadFile(f);
+            if(_ftpId.equals("") || _ftpPw.equals("")){
+                Toast.makeText(getApplicationContext(), "FTP ID 또는 PASSWORD 가 없습니다.", Toast.LENGTH_LONG).show();
+            }else{
+                FileUpLoad fileUpload = new FileUpLoad(_ip, _ftpPort, _ftpId, _ftpPw, "utf-8", "./", this);
+                fileUpload.login();
+                File f = new File(_list[sendIndex].getPath());
+                fileUpload.uploadFile(f);
+                isSending = true;
+            }
         }
     }
 }
