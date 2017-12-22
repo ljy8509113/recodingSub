@@ -82,6 +82,16 @@ public class MainActivity extends Activity implements SettingListener {
                     });
                     }
 
+                    JSONObject data = new JSONObject();
+                    try {
+                        data.put("identifier", "recode");
+                        data.put("device_id", _uuid);
+                        Log.d("lee - ", "req : "+data.toString());
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                    mService.requestApi(data);
+
                 } else if (obj.getString("id").equals("stop")) {
                     Log.d("중지 == ", "2");
                     if (_frameRecode.isRecording()){
@@ -92,6 +102,15 @@ public class MainActivity extends Activity implements SettingListener {
                             }
                         });
                     }
+                    JSONObject data = new JSONObject();
+                    try {
+                        data.put("identifier", "stop");
+                        data.put("device_id", _uuid);
+                        Log.d("lee - ", "req : "+data.toString());
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                    mService.requestApi(data);
                 }else if(obj.getString("id").equals("file")){
                     if(mService.isSending) {
                         Log.d("lee - ", "파일 전송중 ");
