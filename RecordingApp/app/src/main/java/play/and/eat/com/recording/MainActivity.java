@@ -115,7 +115,7 @@ public class MainActivity extends Activity implements SettingListener {
                     if(mService.isSending) {
                         Log.d("lee - ", "파일 전송중 ");
                     }else {
-                        mService.sendFiles(Common.getRootPath());
+                        mService.sendFiles(Common.getMoviePath());
                     }
                 }
             } catch (JSONException e) {

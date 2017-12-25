@@ -785,9 +785,9 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
 
     public String getFilename() {
 //        _fileIndex++;
-        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd_HH_mm");
         String time = format.format(System.currentTimeMillis());
-        String newFilename = Common.getRootPath() + _userName +"_"+ time + ".mp4";
+        String newFilename = Common.getMoviePath() + _userName +"_"+ time + ".mp4";
         return newFilename;
     }
 

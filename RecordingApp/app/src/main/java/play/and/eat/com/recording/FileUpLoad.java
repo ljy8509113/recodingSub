@@ -118,26 +118,14 @@ public class FileUpLoad implements CopyStreamListener{
             Log.e("FTP_SEND_ERR", "파일전송에 문제가 생겼습니다. " + e.toString());
             uploadResult = false;
         } finally {
-            if (fis != null) {
-                try {
-                    fis.close();
-                    ftp.logout();
-                } catch (IOException e) {
-                    // TODO Auto-generated catch block
-                    Log.i("FTP", "ftp 접속 스트림 닫고 로그아웃중 오류 발생");
-                    e.printStackTrace();
-                    uploadResult = false;
-                }
-            }
-
-            if (ftp.isConnected()) {
-                try {
-                    ftp.disconnect();
-                } catch (IOException e) {
-                    // TODO Auto-generated catch block
-                    Log.i("FTP", "ftp 접속 종료중 문제 발생");
-                    uploadResult = false;
-                }
+            try {
+                fis.close();
+                _downListener.downLoadComplate(_fileName);
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                Log.i("FTP", "ftp 접속 스트림 닫고 로그아웃중 오류 발생");
+                e.printStackTrace();
+                uploadResult = false;
             }
         }
         return uploadResult;
@@ -152,13 +140,35 @@ public class FileUpLoad implements CopyStreamListener{
     public void bytesTransferred(long l, int i, long l1) {
         int percent = (int)( ((double)l/(double)fileLength)  * 100);
         if(percent == 100){
-            _downListener.downLoadComplate(_fileName);
+//            _downListener.downLoadComplate(_fileName);
         }else{
-            _downListener.progress(_fileName, percent);
+            //_downListener.progress(_fileName, percent/10);
         }
 
         //Log.d("lee - ", "l : " + l + " // i" + i + " // l1 " +l1 );
         //Log.d("lee - ", "progress : " + percent + " // l : "+ l +" // total : " + fileLength);
+    }
+
+    public void close(){
+        if (fis != null) {
+            try {
+                fis.close();
+                ftp.logout();
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                Log.i("FTP", "ftp 접속 스트림 닫고 로그아웃중 오류 발생");
+                e.printStackTrace();
+            }
+        }
+
+        if (ftp.isConnected()) {
+            try {
+                ftp.disconnect();
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                Log.i("FTP", "ftp 접속 종료중 문제 발생");
+            }
+        }
     }
 }
 

@@ -18,7 +18,7 @@ public class Common {
     public final static String FTP_ID = "ftpId";
     public final static String FTP_PW = "ftpPass";
 
-    public static String getRootPath(){
+    public static String getMoviePath(){
         String root = Environment.getExternalStorageDirectory().getAbsolutePath();
         String folder = "";
         if(root == null || root.equals("")){

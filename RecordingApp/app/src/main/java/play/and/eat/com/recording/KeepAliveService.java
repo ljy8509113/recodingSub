@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Binder;
-import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
 import android.widget.Toast;
@@ -14,11 +13,10 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
 
 import play.and.eat.com.recording.play.and.eat.com.recording.listener.FileDownloadListener;
 import play.and.eat.com.recording.play.and.eat.com.recording.listener.TCPClientListener;
+
 
 /**
  * Created by ljy on 2017-12-09.
@@ -42,12 +40,12 @@ public class KeepAliveService extends Service implements TCPClientListener, File
 
     @Override
     public void progress(String fileName, int persent) {
-       if(_progress < persent){
+        if(_progress < persent){
             _progress = persent;
             JSONObject data = new JSONObject();
             try {
                 data.put("identifier", "progress");
-                data.put("persent", persent+"");
+                data.put("persent", _progress+"");
                 data.put("current", (sendIndex+1)+"");
                 data.put("max", _list.length+"");
                 data.put("name", fileName);
@@ -76,13 +74,13 @@ public class KeepAliveService extends Service implements TCPClientListener, File
             e.printStackTrace();
         }
 
-        sendIndex++;
-        if (_list.length > sendIndex) {
-            sendFile();
-        } else {
-            sendIndex = 0;
-            _list = null;
-            isSending = false;
+//        sendIndex++;
+//        if (_list.length > sendIndex) {
+//            sendFile();
+//        } else {
+//            sendIndex = 0;
+//            _list = null;
+//            isSending = false;
 //            for(File f : _list){
 //                if (f.delete()) {
 //                    Log.d("lee - ", "삭제 성공 : " +  f.getName());
@@ -90,7 +88,7 @@ public class KeepAliveService extends Service implements TCPClientListener, File
 //                    Log.d("lee - ", "삭제 실패 : " +  f.getName());
 //                }
 //            }
-        }
+//        }
     }
 
     //서비스 바인더 내부 클래스 선언
@@ -115,6 +113,7 @@ public class KeepAliveService extends Service implements TCPClientListener, File
 
     @Override
     public void onDestroy() {
+        _client.Disconnect();
         super.onDestroy();
     }
 
@@ -156,7 +155,6 @@ public class KeepAliveService extends Service implements TCPClientListener, File
         } catch (JSONException e) {
             e.printStackTrace();
         }
-
     }
 
     @Override
@@ -187,8 +185,10 @@ public class KeepAliveService extends Service implements TCPClientListener, File
         _isTeacher = isTeacher;
         _ftpPort = ftpPort;
         Log.d("lee - ", "myServiceFunc");
-        _client = new TCPClient();
-        _client.Connect(_ip, _port, this, _uuid);
+        if(_client == null){
+            _client = new TCPClient();
+            _client.Connect(_ip, _port, this, _uuid);
+        }
     }
 
     public void requestApi(JSONObject obj){
@@ -203,6 +203,19 @@ public class KeepAliveService extends Service implements TCPClientListener, File
         _filePath = path;
         File f = new File(path);
         _list = f.listFiles();
+
+//        for(File file : _list ) {
+//            int endIndex = file.getName().indexOf(".");
+//            String name = file.getName().substring(0, endIndex);
+//            String ext = file.getName().substring(endIndex, file.getName().length());
+//
+//            if (!ext.equalsIgnoreCase("zip")) {
+//                File reNameFile = new File(path + name + ".zip");
+//                file.renameTo(reNameFile);
+//            }
+//        }
+//
+//        _list = f.listFiles();
         sendFile();
     }
 
@@ -214,10 +227,22 @@ public class KeepAliveService extends Service implements TCPClientListener, File
             }else{
                 FileUpLoad fileUpload = new FileUpLoad(_ip, _ftpPort, _ftpId, _ftpPw, "utf-8", "./", this);
                 fileUpload.login();
-                File f = new File(_list[sendIndex].getPath());
-                fileUpload.uploadFile(f);
                 isSending = true;
+                sendIndex = 0;
+
+                for(File f : _list){
+                    if(fileUpload.uploadFile(f)){
+                        sendIndex++;
+                        f.delete();
+                    }
+                }
+               _list = null;
+                fileUpload.close();
             }
+
+        }else{
+            downLoadComplate("");
         }
     }
+
 }
