@@ -117,6 +117,8 @@ public class MainActivity extends Activity implements SettingListener {
                     }else {
                         mService.sendFiles(Common.getMoviePath());
                     }
+                }else if(obj.getString("identifier").equals("error")){
+                    Toast.makeText(MainActivity.this, obj.getString("msg"), Toast.LENGTH_LONG).show();
                 }
             } catch (JSONException e) {
                 e.printStackTrace();

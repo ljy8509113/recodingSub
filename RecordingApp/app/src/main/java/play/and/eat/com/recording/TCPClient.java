@@ -49,7 +49,6 @@ public class TCPClient {
         serverIp = ip;
         serverPort = port;
         _uuid = uuid;
-//        dataToSend = null;
         _listener = listener;
         new Thread(new ConnectRunnable()).start();
     }
@@ -244,8 +243,16 @@ public class TCPClient {
                 //_listener.connectionSuccess();
 
             } catch (Exception e) {
-                e.printStackTrace();
+                if(e.getMessage().toLowerCase().contains("no route to host") || e.getMessage().toLowerCase().contains("connection refused")){
+                    Log.d("lee", "Toast");
+                    _listener.error("IP 혹은 PORT 확인이 필요합니다.");
+                }else{
+                    Log.d("lee", "connectionSnap");
+                    _listener.connectionSnap();
+                }
+                Log.d("lee socket mas", e.getMessage());
             }
+
             Log.d(TAG, "Connetion thread stopped");
             if(connectionSocket.isConnected()){
                 Log.d(TAG, "is connection success");

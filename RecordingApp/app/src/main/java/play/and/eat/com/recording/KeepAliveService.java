@@ -73,22 +73,6 @@ public class KeepAliveService extends Service implements TCPClientListener, File
         } catch (JSONException e) {
             e.printStackTrace();
         }
-
-//        sendIndex++;
-//        if (_list.length > sendIndex) {
-//            sendFile();
-//        } else {
-//            sendIndex = 0;
-//            _list = null;
-//            isSending = false;
-//            for(File f : _list){
-//                if (f.delete()) {
-//                    Log.d("lee - ", "삭제 성공 : " +  f.getName());
-//                } else {
-//                    Log.d("lee - ", "삭제 실패 : " +  f.getName());
-//                }
-//            }
-//        }
     }
 
     //서비스 바인더 내부 클래스 선언
@@ -124,15 +108,6 @@ public class KeepAliveService extends Service implements TCPClientListener, File
 
     @Override
     public void connectionSuccess() {
-
-//        JSONObject echo = new JSONObject();
-//        try{
-//            echo.put("identifier","echo");
-//            _client.WriteCommand(echo.toString());
-//        }catch (JSONException e){
-//            e.printStackTrace();
-//        }
-
         try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {
@@ -161,6 +136,27 @@ public class KeepAliveService extends Service implements TCPClientListener, File
     public void onReceiver(String result) {
         Log.d("lee - ", "onReceiver : " + result);
         mCallback.recvData(result);
+    }
+
+    @Override
+    public void connectionSnap() {
+        if(_client == null)
+            _client = new TCPClient();
+
+        _client.Connect(_ip, _port, this, _uuid);
+    }
+
+    @Override
+    public void error(String msg) {
+        JSONObject data = new JSONObject();
+        try {
+            data.put("identifier", "error");
+            data.put("msg", msg);
+            Log.d("lee","error recvData");
+            mCallback.recvData(data.toString());
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
     }
 
     //콜백 인터페이스 선언
