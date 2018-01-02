@@ -42,11 +42,8 @@ public class MainActivity extends Activity implements SettingListener {
 
         _devicePolicyManager = (DevicePolicyManager) getApplicationContext().getSystemService(Context.DEVICE_POLICY_SERVICE);
 
-        if (null == savedInstanceState) {
-            _frameRecode = RecodingFragment.newInstance(this, this);
-            getFragmentManager().beginTransaction().replace(R.id.container, _frameRecode).commit();
-        }
-
+        _frameRecode = RecodingFragment.newInstance(this, this);
+        getFragmentManager().beginTransaction().replace(R.id.container, _frameRecode).commit();
         Intent Service = new Intent(this, KeepAliveService.class);
         bindService(Service, mConnection, Context.BIND_AUTO_CREATE);
     }
