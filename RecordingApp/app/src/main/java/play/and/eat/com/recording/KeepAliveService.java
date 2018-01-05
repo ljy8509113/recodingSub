@@ -97,7 +97,8 @@ public class KeepAliveService extends Service implements TCPClientListener, File
 
     @Override
     public void onDestroy() {
-        _client.Disconnect();
+        if(_client != null && _client.isConnected())
+            _client.Disconnect();
         super.onDestroy();
     }
 

@@ -42,9 +42,6 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.Toast;
 
-import com.crashlytics.android.Crashlytics;
-
-import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -55,7 +52,6 @@ import java.util.UUID;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
-import io.fabric.sdk.android.Fabric;
 import play.and.eat.com.recording.play.and.eat.com.recording.listener.SettingListener;
 
 /**
@@ -70,17 +66,9 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
     private static final SparseIntArray INVERSE_ORIENTATIONS = new SparseIntArray();
 
     private static final String TAG = "Camera2VideoFragment";
-    private static final int REQUEST_VIDEO_PERMISSIONS = 1;
     private static final String FRAGMENT_DIALOG = "dialog";
 
-    private static final String[] VIDEO_PERMISSIONS = {
-            Manifest.permission.CAMERA,
-            Manifest.permission.RECORD_AUDIO,
-            Manifest.permission.WRITE_EXTERNAL_STORAGE,
-            Manifest.permission.READ_EXTERNAL_STORAGE,
-            Manifest.permission.READ_PHONE_STATE,
-            Manifest.permission.ACCESS_NETWORK_STATE
-    };
+//    public static RecodingFragment _instance = null;
 
     static {
         DEFAULT_ORIENTATIONS.append(Surface.ROTATION_0, 90);
@@ -138,6 +126,12 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
 
         @Override
         public boolean onSurfaceTextureDestroyed(SurfaceTexture surfaceTexture) {
+//            return true;
+            Log.e(TAG, "onSurfaceTextureDestroyed");
+            if(mCameraDevice != null){
+                closeCamera();
+                mCameraDevice = null;
+            }
             return true;
         }
 
@@ -227,12 +221,14 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
 //    private String mNextVideoAbsolutePath;
     private CaptureRequest.Builder mPreviewBuilder;
 
-    public static RecodingFragment newInstance(MainActivity ac, SettingListener listener) {
-        RecodingFragment rc = new RecodingFragment();
-        rc._activity = ac;
-        rc._listener = listener;
-        return rc;
-    }
+//    public static RecodingFragment newInstance(MainActivity ac, SettingListener listener) {
+//        if(_instance == null){
+//            _instance = new RecodingFragment();
+//            _instance._activity = ac;
+//            _instance._listener = listener;
+//        }
+//        return _instance;
+//    }
 
 
     /**
@@ -328,12 +324,11 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.video: {
-//                if (mIsRecordingVideo) {
-//                    stopRecordingVideo();
-//                } else {
-//                    startRecordingVideo();
-//                }
-                _activity.sendMsg();
+                if (mIsRecordingVideo) {
+                    stopRecordingVideo();
+                } else {
+                    startRecordingVideo();
+                }
                 break;
             }
             case R.id.button_setting: {
@@ -372,68 +367,14 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
 //    }
 
     /**
-     * Gets whether you should show UI with rationale for requesting permissions.
-     *
-     * @param permissions The permissions your app wants to request.
-     * @return Whether you can show permission rationale UI.
-     */
-    private boolean shouldShowRequestPermissionRationale(String[] permissions) {
-        for (String permission : permissions) {
-            if (FragmentCompat.shouldShowRequestPermissionRationale(this, permission)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Requests permissions needed for recording video.
-     */
-    private void requestVideoPermissions() {
-        if (shouldShowRequestPermissionRationale(VIDEO_PERMISSIONS)) {
-            new ConfirmationDialog().show(getChildFragmentManager(), FRAGMENT_DIALOG);
-        } else {
-            FragmentCompat.requestPermissions(this, VIDEO_PERMISSIONS, REQUEST_VIDEO_PERMISSIONS);
-        }
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        Log.d(TAG, "onRequestPermissionsResult");
-        if (requestCode == REQUEST_VIDEO_PERMISSIONS) {
-            if (grantResults.length == VIDEO_PERMISSIONS.length) {
-                for (int result : grantResults) {
-                    if (result != PackageManager.PERMISSION_GRANTED) {
-                        ErrorDialog.newInstance(getString(R.string.permission_request)).show(getChildFragmentManager(), FRAGMENT_DIALOG);
-                        break;
-                    }
-                }
-            } else {
-                ErrorDialog.newInstance(getString(R.string.permission_request)).show(getChildFragmentManager(), FRAGMENT_DIALOG);
-            }
-        } else {
-            super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        }
-    }
-
-    private boolean hasPermissionsGranted(String[] permissions) {
-        for (String permission : permissions) {
-            if (ActivityCompat.checkSelfPermission(getActivity(), permission) != PackageManager.PERMISSION_GRANTED) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    /**
      * Tries to open a {@link CameraDevice}. The result is listened by `mStateCallback`.
      */
     @SuppressWarnings("MissingPermission")
     private void openCamera(int width, int height) {
-        if (!hasPermissionsGranted(VIDEO_PERMISSIONS)) {
-            requestVideoPermissions();
-            return;
-        }
+//        if (!hasPermissionsGranted(VIDEO_PERMISSIONS)) {
+//            requestVideoPermissions();
+//            return;
+//        }
         final Activity activity = getActivity();
         if (null == activity || activity.isFinishing()) {
             return;
@@ -467,6 +408,7 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
             configureTransform(width, height);
             mMediaRecorder = new MediaRecorder();
             manager.openCamera(cameraId, mStateCallback, null);
+
         } catch (CameraAccessException e) {
             Toast.makeText(activity, "Cannot access the camera.", Toast.LENGTH_SHORT).show();
             activity.finish();
@@ -479,7 +421,6 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
             throw new RuntimeException("Interrupted while trying to lock camera opening.");
         }
 
-        _activity.checkAdmin();
 
     }
 
@@ -629,6 +570,7 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
 //        return (dir == null ? "" : (dir.getAbsolutePath() + "/")) + System.currentTimeMillis() + ".mp4";
 //    }
 
+    List<Surface> _surfaces = null;
     public void startRecordingVideo() {
         if (null == mCameraDevice || !mTextureView.isAvailable() || null == mPreviewSize) {
             return;
@@ -640,54 +582,51 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
             assert texture != null;
             texture.setDefaultBufferSize(mPreviewSize.getWidth(), mPreviewSize.getHeight());
             mPreviewBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_RECORD);
-            List<Surface> surfaces = new ArrayList<>();
+            _surfaces = new ArrayList<>();
 
             // Set up Surface for the camera preview
             Surface previewSurface = new Surface(texture);
-            surfaces.add(previewSurface);
+            _surfaces.add(previewSurface);
             mPreviewBuilder.addTarget(previewSurface);
 
             // Set up Surface for the MediaRecorder
             Surface recorderSurface = mMediaRecorder.getSurface();
-            surfaces.add(recorderSurface);
+            _surfaces.add(recorderSurface);
             mPreviewBuilder.addTarget(recorderSurface);
 
-
-            // Start a capture session
-            // Once the session starts, we can update the UI and start recording
-            mCameraDevice.createCaptureSession(surfaces, new CameraCaptureSession.StateCallback() {
-
+            new Handler().postDelayed(new Runnable() {
                 @Override
-                public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
-                    mPreviewSession = cameraCaptureSession;
-                    updatePreview();
-                    mButtonVideo.setText(R.string.stop);
-                    mIsRecordingVideo = true;
-                    mMediaRecorder.start();
+                public void run() {
+                    try{
+                        // Start a capture session
+                        // Once the session starts, we can update the UI and start recording
+                        mCameraDevice.createCaptureSession(_surfaces, new CameraCaptureSession.StateCallback() {
 
-                    _activity.offScreen();
-//                    getActivity().runOnUiThread(new Runnable() {
-//                        @Override
-//                        public void run() {
-//                            // UI
-//                            mButtonVideo.setText(R.string.stop);
-//                            mIsRecordingVideo = true;
-//
-//                            // Start recording
-//                            mMediaRecorder.start();
-//                            _activity.offScreen();
-//                        }
-//                    });
-                }
+                            @Override
+                            public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
+                                mPreviewSession = cameraCaptureSession;
+                                updatePreview();
+                                mButtonVideo.setText(R.string.stop);
+                                mIsRecordingVideo = true;
+                                mMediaRecorder.start();
+                                _activity.offScreen();
+                            }
 
-                @Override
-                public void onConfigureFailed(@NonNull CameraCaptureSession cameraCaptureSession) {
-                    Activity activity = getActivity();
-                    if (null != activity) {
-                        Toast.makeText(activity, "Failed", Toast.LENGTH_SHORT).show();
+                            @Override
+                            public void onConfigureFailed(@NonNull CameraCaptureSession cameraCaptureSession) {
+                                Activity activity = getActivity();
+                                if (null != activity) {
+                                    Toast.makeText(activity, "Failed", Toast.LENGTH_SHORT).show();
+                                }
+                            }
+                        }, mBackgroundHandler);
+                    }catch (CameraAccessException e) {
+                        e.printStackTrace();
                     }
                 }
-            }, mBackgroundHandler);
+            }, 1000);
+
+
         } catch (CameraAccessException | IOException e) {
             e.printStackTrace();
         }
@@ -759,32 +698,6 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
         }
 
     }
-
-    public static class ConfirmationDialog extends DialogFragment {
-
-        @Override
-        public Dialog onCreateDialog(Bundle savedInstanceState) {
-            final Fragment parent = getParentFragment();
-            return new AlertDialog.Builder(getActivity())
-                    .setMessage(R.string.permission_request)
-                    .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            FragmentCompat.requestPermissions(parent, VIDEO_PERMISSIONS, REQUEST_VIDEO_PERMISSIONS);
-                        }
-                    })
-                    .setNegativeButton(android.R.string.cancel,
-                            new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog, int which) {
-                                    parent.getActivity().finish();
-                                }
-                            })
-                    .create();
-        }
-
-    }
-
 
     public String getFilename() {
 //        _fileIndex++;

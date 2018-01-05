@@ -1,8 +1,8 @@
 <resources>
     <string name="app_name">Recording</string>
     <string name="description_info">Info</string>
-    <string name="permission_request">This sample needs permission for camera and audio recording.</string>
-    <string name="camera_error">This device doesn\'t support Camera2 API.</string>
+    <string name="permission_request">모든 권한을 허용해야 앱 사용이 가능합니다.</string>
+    <string name="camera_error">해당 os는 카메라2 API를 지원하지 않습니다.</string>
     <string name="record">Record</string>
     <string name="stop">Stop</string>
     <string name="sample_device_admin">SAMPLE DEVICE ADMIN</string>
