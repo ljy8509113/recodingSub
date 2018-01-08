@@ -298,11 +298,13 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
 
         _buttonSetting = (Button) view.findViewById(R.id.button_setting);
         _buttonSetting.setOnClickListener(this);
+
     }
 
     @Override
     public void onResume() {
-//        startBackgroundThread();
+        super.onResume();
+        startBackgroundThread();
         if(!mIsRecordingVideo) {
             if (mTextureView.isAvailable()) {
                 openCamera(mTextureView.getWidth(), mTextureView.getHeight());
@@ -310,7 +312,6 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
                 mTextureView.setSurfaceTextureListener(mSurfaceTextureListener);
             }
         }
-        super.onResume();
     }
 
     @Override
@@ -318,6 +319,13 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
 //        closeCamera();
 //        stopBackgroundThread();
         super.onPause();
+    }
+
+    @Override
+    public void onDestroy(){
+        closeCamera();
+        stopBackgroundThread();
+        super.onDestroy();
     }
 
     @Override
@@ -346,25 +354,25 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
 //    /**
 //     * Starts a background thread and its {@link Handler}.
 //     */
-//    private void startBackgroundThread() {
-//        mBackgroundThread = new HandlerThread("CameraBackground");
-//        mBackgroundThread.start();
-//        mBackgroundHandler = new Handler(mBackgroundThread.getLooper());
-//    }
-//
-//    /**
-//     * Stops the background thread and its {@link Handler}.
-//     */
-//    private void stopBackgroundThread() {
-//        mBackgroundThread.quitSafely();
-//        try {
-//            mBackgroundThread.join();
-//            mBackgroundThread = null;
-//            mBackgroundHandler = null;
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
-//    }
+    private void startBackgroundThread() {
+        mBackgroundThread = new HandlerThread("CameraBackground");
+        mBackgroundThread.start();
+        mBackgroundHandler = new Handler(mBackgroundThread.getLooper());
+    }
+
+    /**
+     * Stops the background thread and its {@link Handler}.
+     */
+    private void stopBackgroundThread() {
+        mBackgroundThread.quitSafely();
+        try {
+            mBackgroundThread.join();
+            mBackgroundThread = null;
+            mBackgroundHandler = null;
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
 
     /**
      * Tries to open a {@link CameraDevice}. The result is listened by `mStateCallback`.
@@ -593,6 +601,7 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
             Surface recorderSurface = mMediaRecorder.getSurface();
             _surfaces.add(recorderSurface);
             mPreviewBuilder.addTarget(recorderSurface);
+            mButtonVideo.setText(R.string.stop);
 
             new Handler().postDelayed(new Runnable() {
                 @Override
@@ -606,7 +615,7 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
                             public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
                                 mPreviewSession = cameraCaptureSession;
                                 updatePreview();
-                                mButtonVideo.setText(R.string.stop);
+
                                 mIsRecordingVideo = true;
                                 mMediaRecorder.start();
                                 _activity.offScreen();
@@ -622,9 +631,10 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
                         }, mBackgroundHandler);
                     }catch (CameraAccessException e) {
                         e.printStackTrace();
+                        mButtonVideo.setText(R.string.record);
                     }
                 }
-            }, 1000);
+            }, 10000);
 
 
         } catch (CameraAccessException | IOException e) {
