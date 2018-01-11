@@ -22,11 +22,10 @@ public class Common {
         String root = Environment.getExternalStorageDirectory().getAbsolutePath();
         String folder = "";
         if(root == null || root.equals("")){
-            folder = "/recodeFiles/";
+            folder = "/recodeFiles";
         }else{
-            folder = root+"/recodeFiles/";
+            folder = root+"/recodeFiles";
         }
-
 
         File f = new File(folder);
         if(f.isDirectory() == false)

@@ -181,7 +181,7 @@ public class MainActivity extends Activity implements SettingListener {
         _pref = getSharedPreferences(Common.SHARE_DATA_KEY, Context.MODE_PRIVATE);
         _ip = _pref.getString(Common.IP_KEY, "");
         _port = _pref.getInt(Common.PORT_KEY, 0);
-        _userName = _pref.getString(Common.NAME_KEY, "No Name");
+        _userName = _pref.getString(Common.NAME_KEY, "NoName");
         _isTeacher = _pref.getBoolean(Common.IS_TEACHER_KEY, false);
         _uuid = _frameRecode.getUUID(this);
         _frameRecode._userName = _userName;

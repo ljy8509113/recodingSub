@@ -50,11 +50,24 @@
             android:layout_alignParentTop="true" />
     </LinearLayout>
 
+    <TextView
+        android:id="@+id/text_recoding"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="녹화중입니다."
+        android:textSize="15sp"
+        android:textColor="#ffffff"
+        android:background="#000000"
+        android:layout_gravity="center"
+        android:gravity="center"/>
+
     <play.and.eat.com.recording.SettingView
         android:id="@+id/view_setting"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
     </play.and.eat.com.recording.SettingView>
+
+
 
 </FrameLayout>

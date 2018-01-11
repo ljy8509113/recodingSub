@@ -40,6 +40,7 @@ import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.IOException;
@@ -185,6 +186,7 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
     MainActivity _activity;
     public SettingListener _listener;
     public String _userName = "";
+    TextView _textRecoding;
 
     private CameraDevice.StateCallback mStateCallback = new CameraDevice.StateCallback() {
 
@@ -299,6 +301,9 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
         _buttonSetting = (Button) view.findViewById(R.id.button_setting);
         _buttonSetting.setOnClickListener(this);
 
+        _textRecoding = view.findViewById(R.id.text_recoding);
+        _textRecoding.setVisibility(View.GONE);
+        
     }
 
     @Override
@@ -404,8 +409,7 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
                 throw new RuntimeException("Cannot get available preview/video sizes");
             }
             mVideoSize = chooseVideoSize(map.getOutputSizes(MediaRecorder.class));
-            mPreviewSize = chooseOptimalSize(map.getOutputSizes(SurfaceTexture.class),
-                    width, height, mVideoSize);
+            mPreviewSize = chooseOptimalSize(map.getOutputSizes(SurfaceTexture.class), width, height, mVideoSize);
 
             int orientation = getResources().getConfiguration().orientation;
             if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
@@ -555,11 +559,16 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
 //        }
         
         mMediaRecorder.setOutputFile(getFilename());
-        mMediaRecorder.setVideoEncodingBitRate(10000000);
+//        mMediaRecorder.setVideoEncodingBitRate(10000000);
+        mMediaRecorder.setVideoEncodingBitRate(2097152);
         mMediaRecorder.setVideoFrameRate(30);
         mMediaRecorder.setVideoSize(mVideoSize.getWidth(), mVideoSize.getHeight());
-        mMediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.MPEG_4_SP);
+//        mMediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.MPEG_4_SP);
+//        mMediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+
+        mMediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
         mMediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+
         int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
 
         switch (mSensorOrientation) {
@@ -598,19 +607,20 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
             mPreviewBuilder.addTarget(previewSurface);
 
             // Set up Surface for the MediaRecorder
-            Surface recorderSurface = mMediaRecorder.getSurface();
+            final Surface recorderSurface = mMediaRecorder.getSurface();
             _surfaces.add(recorderSurface);
             mPreviewBuilder.addTarget(recorderSurface);
             mButtonVideo.setText(R.string.stop);
+            _textRecoding.setVisibility(View.VISIBLE);
 
-            new Handler().postDelayed(new Runnable() {
-                @Override
-                public void run() {
+//            new Handler().postDelayed(new Runnable() {
+//                @Override
+//                public void run() {
                     try{
                         // Start a capture session
                         // Once the session starts, we can update the UI and start recording
+//                        mCameraDevice.createCaptureSession(Collections.singletonList(recorderSurface), new CameraCaptureSession.StateCallback() {
                         mCameraDevice.createCaptureSession(_surfaces, new CameraCaptureSession.StateCallback() {
-
                             @Override
                             public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
                                 mPreviewSession = cameraCaptureSession;
@@ -626,6 +636,7 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
                                 Activity activity = getActivity();
                                 if (null != activity) {
                                     Toast.makeText(activity, "Failed", Toast.LENGTH_SHORT).show();
+
                                 }
                             }
                         }, mBackgroundHandler);
@@ -633,8 +644,8 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
                         e.printStackTrace();
                         mButtonVideo.setText(R.string.record);
                     }
-                }
-            }, 10000);
+//                }
+//            }, 10000);
 
 
         } catch (CameraAccessException | IOException e) {
@@ -654,6 +665,7 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
         // UI
         mIsRecordingVideo = false;
         mButtonVideo.setText(R.string.record);
+        _textRecoding.setVisibility(View.GONE);
         // Stop recording
         closePreviewSession();
         mMediaRecorder.stop();
@@ -713,7 +725,7 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
 //        _fileIndex++;
         SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd_HH_mm");
         String time = format.format(System.currentTimeMillis());
-        String newFilename = Common.getMoviePath() + _userName +"_"+ time + ".mp4";
+        String newFilename = Common.getMoviePath() +"/"+ _userName +"_"+ time + ".mp4";
         return newFilename;
     }
 
