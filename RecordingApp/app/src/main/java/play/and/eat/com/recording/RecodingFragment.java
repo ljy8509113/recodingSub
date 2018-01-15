@@ -587,7 +587,7 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
 //        return (dir == null ? "" : (dir.getAbsolutePath() + "/")) + System.currentTimeMillis() + ".mp4";
 //    }
 
-    List<Surface> _surfaces = null;
+//    List<Surface> _surfaces = null;
     public void startRecordingVideo() {
         if (null == mCameraDevice || !mTextureView.isAvailable() || null == mPreviewSize) {
             return;
@@ -599,16 +599,16 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
             assert texture != null;
             texture.setDefaultBufferSize(mPreviewSize.getWidth(), mPreviewSize.getHeight());
             mPreviewBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_RECORD);
-            _surfaces = new ArrayList<>();
+//            _surfaces = new ArrayList<>();
 
             // Set up Surface for the camera preview
-            Surface previewSurface = new Surface(texture);
-            _surfaces.add(previewSurface);
-            mPreviewBuilder.addTarget(previewSurface);
+//            Surface previewSurface = new Surface(texture);
+//            _surfaces.add(previewSurface);
+//            mPreviewBuilder.addTarget(previewSurface);
 
             // Set up Surface for the MediaRecorder
             final Surface recorderSurface = mMediaRecorder.getSurface();
-            _surfaces.add(recorderSurface);
+//            _surfaces.add(recorderSurface);
             mPreviewBuilder.addTarget(recorderSurface);
             mButtonVideo.setText(R.string.stop);
             _textRecoding.setVisibility(View.VISIBLE);
@@ -619,8 +619,8 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
                     try{
                         // Start a capture session
                         // Once the session starts, we can update the UI and start recording
-//                        mCameraDevice.createCaptureSession(Collections.singletonList(recorderSurface), new CameraCaptureSession.StateCallback() {
-                        mCameraDevice.createCaptureSession(_surfaces, new CameraCaptureSession.StateCallback() {
+                        mCameraDevice.createCaptureSession(Collections.singletonList(recorderSurface), new CameraCaptureSession.StateCallback() {
+//                        mCameraDevice.createCaptureSession(_surfaces, new CameraCaptureSession.StateCallback() {
                             @Override
                             public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
                                 mPreviewSession = cameraCaptureSession;
