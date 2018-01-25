@@ -30,7 +30,7 @@ import play.and.eat.com.recording.play.and.eat.com.recording.listener.SettingLis
 
 public class MainActivity extends Activity implements SettingListener {
 
-    DevicePolicyManager _devicePolicyManager;
+//    DevicePolicyManager _devicePolicyManager;
     RecodingFragment _frameRecode;
 
     private String _ip = "xxx.xxx.xxx.xxx"; // IP
@@ -64,17 +64,19 @@ public class MainActivity extends Activity implements SettingListener {
         Fabric.with(this, new Crashlytics());
         setContentView(R.layout.activity_main);
 
-        _devicePolicyManager = (DevicePolicyManager) getApplicationContext().getSystemService(Context.DEVICE_POLICY_SERVICE);
-        ComponentName componentName = new ComponentName(getApplicationContext(), ShutdownConfigAdminReceiver.class);
+//        _devicePolicyManager = (DevicePolicyManager) getApplicationContext().getSystemService(Context.DEVICE_POLICY_SERVICE);
+//        ComponentName componentName = new ComponentName(getApplicationContext(), ShutdownConfigAdminReceiver.class);
+//
+//        Log.d("lee", "checkAdmin " + _devicePolicyManager.isAdminActive(componentName));
+//        if (!_devicePolicyManager.isAdminActive(componentName)) {
+//            Intent intent = new Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN);
+//            intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, componentName);
+//            startActivityForResult(intent, 0);
+//        }else{
+//            checkPermission();
+//        }
 
-        Log.d("lee", "checkAdmin " + _devicePolicyManager.isAdminActive(componentName));
-        if (!_devicePolicyManager.isAdminActive(componentName)) {
-            Intent intent = new Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN);
-            intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, componentName);
-            startActivityForResult(intent, 0);
-        }else{
-            checkPermission();
-        }
+        checkPermission();
 
     }
 
@@ -96,7 +98,7 @@ public class MainActivity extends Activity implements SettingListener {
         Intent Service = new Intent(MainActivity.this, KeepAliveService.class);
         bindService(Service, mConnection, Context.BIND_AUTO_CREATE);
 
-        setInfo();
+
     }
 
     //서비스 커넥션 선언.
@@ -106,7 +108,8 @@ public class MainActivity extends Activity implements SettingListener {
             KeepAliveService.MainServiceBinder binder = (KeepAliveService.MainServiceBinder) service;
             mService = binder.getService(); //서비스 받아옴
             mService.registerCallback(mCallback); //콜백 등록
-
+            Log.d("lee", "onServiceConnected");
+            setInfo();
         }
 
         // Called when the connection with the service disconnects unexpectedly
@@ -197,9 +200,9 @@ public class MainActivity extends Activity implements SettingListener {
         checkPermission();
     }
 
-    public void offScreen() {
-        _devicePolicyManager.lockNow();
-    }
+//    public void offScreen() {
+//        _devicePolicyManager.lockNow();
+//    }
 
     public void connection() {
         if (_ip.equals("")) {
