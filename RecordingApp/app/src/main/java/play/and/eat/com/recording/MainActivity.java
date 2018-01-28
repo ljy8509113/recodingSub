@@ -26,6 +26,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import io.fabric.sdk.android.Fabric;
+import play.and.eat.com.recording.data.SettingData;
 import play.and.eat.com.recording.play.and.eat.com.recording.listener.SettingListener;
 
 public class MainActivity extends Activity implements SettingListener {
@@ -33,13 +34,13 @@ public class MainActivity extends Activity implements SettingListener {
 //    DevicePolicyManager _devicePolicyManager;
     RecodingFragment _frameRecode;
 
-    private String _ip = "xxx.xxx.xxx.xxx"; // IP
-    private int _port = 9999; // PORT번호
+//    private String _ip = "xxx.xxx.xxx.xxx"; // IP
+//    private int _port = 9999; // PORT번호
     SharedPreferences _pref;
-    String _userName;
-    boolean _isTeacher = false;
-    String _uuid = null;
-    int _ftpPort = 21;
+//    String _userName;
+//    boolean _isTeacher = false;
+//    String _uuid = null;
+//    int _ftpPort = 21;
 
     KeepAliveService mService = null;
 
@@ -139,7 +140,7 @@ public class MainActivity extends Activity implements SettingListener {
                     JSONObject data = new JSONObject();
                     try {
                         data.put("identifier", "recode");
-                        data.put("device_id", _uuid);
+                        data.put("device_id", SettingData.Instance().uuid);
                         Log.d("lee - ", "req : "+data.toString());
                     } catch (JSONException e) {
                         e.printStackTrace();
@@ -159,7 +160,7 @@ public class MainActivity extends Activity implements SettingListener {
                     JSONObject data = new JSONObject();
                     try {
                         data.put("identifier", "stop");
-                        data.put("device_id", _uuid);
+                        data.put("device_id", SettingData.Instance().uuid);
                         Log.d("lee - ", "req : "+data.toString());
                     } catch (JSONException e) {
                         e.printStackTrace();
@@ -182,15 +183,18 @@ public class MainActivity extends Activity implements SettingListener {
 
     void setInfo(){
         _pref = getSharedPreferences(Common.SHARE_DATA_KEY, Context.MODE_PRIVATE);
-        _ip = _pref.getString(Common.IP_KEY, "");
-        _port = _pref.getInt(Common.PORT_KEY, 0);
-        _userName = _pref.getString(Common.NAME_KEY, "NoName");
-        _isTeacher = _pref.getBoolean(Common.IS_TEACHER_KEY, false);
-        _uuid = _frameRecode.getUUID(this);
-        _frameRecode._userName = _userName;
-        _ftpPort = _pref.getInt(Common.FTP_PORT, 21);
+//        _ip = _pref.getString(Common.IP_KEY, "");
+//        _port = _pref.getInt(Common.PORT_KEY, 0);
+//        _userName = _pref.getString(Common.NAME_KEY, "NoName");
+//        _isTeacher = _pref.getBoolean(Common.IS_TEACHER_KEY, false);
+//
+//        _uuid = _frameRecode.getUUID(this);
+//        _frameRecode._userName = _userName;
+//        _ftpPort = _pref.getInt(Common.FTP_PORT, 21);
+//
+//        Log.d("lee - ", "uuid : " + _uuid);
 
-        Log.d("lee - ", "uuid : " + _uuid);
+        SettingData.Instance().loadData(_pref, this);
         connection();
     }
 
@@ -205,43 +209,44 @@ public class MainActivity extends Activity implements SettingListener {
 //    }
 
     public void connection() {
-        if (_ip.equals("")) {
+        if (SettingData.Instance().ip.equals("")) {
             Toast.makeText(this, "서버와의 연결이 필요합니다.", Toast.LENGTH_LONG).show();
         } else {
-            mService.myServiceFunc(_ip, _port, _userName, _uuid, _isTeacher, _ftpPort);
+            mService.myServiceFunc();
         }
     }
 
     @Override
-    public void onSaved(String ip, int port, String userName, boolean isTeacher, int ftpPort) {
-        Log.d("lee - ", ip + " : " + port + " // " + userName);
-
-        SharedPreferences.Editor edit = _pref.edit();
-        String saveIp = _pref.getString(Common.IP_KEY, "");
-        int savePort = _pref.getInt(Common.PORT_KEY, 0);
-
-        _ip = ip;
-        _port = port;
-        _userName = userName;
-        _isTeacher = isTeacher;
-        _frameRecode._userName = userName;
-
-        if(_ftpPort != ftpPort) {
-            _ftpPort = ftpPort;
-            edit.putInt(Common.FTP_PORT,ftpPort);
-            edit.commit();
-        }
-
-        if (!ip.equals(saveIp) || port != savePort || !userName.equals(_userName) || isTeacher != _isTeacher) {
-            edit.putInt(Common.PORT_KEY, port);
-            edit.putString(Common.IP_KEY, ip);
-            edit.putBoolean(Common.IS_TEACHER_KEY, isTeacher);
-            edit.putString(Common.NAME_KEY, userName);
-            edit.commit();
-
-            connection();
-        }
-        Toast.makeText(this, "저장완료 : " + ip, Toast.LENGTH_LONG).show();
+    public void onSaved() {
+//        Log.d("lee - ", ip + " : " + port + " // " + userName);
+//
+//        SharedPreferences.Editor edit = _pref.edit();
+//        String saveIp = _pref.getString(Common.IP_KEY, "");
+//        int savePort = _pref.getInt(Common.PORT_KEY, 0);
+//
+//        _ip = ip;
+//        _port = port;
+//        _userName = userName;
+//        _isTeacher = isTeacher;
+//        _frameRecode._userName = userName;
+//
+//        if(_ftpPort != ftpPort) {
+//            _ftpPort = ftpPort;
+//            edit.putInt(Common.FTP_PORT,ftpPort);
+//            edit.commit();
+//        }
+//
+//        if (!ip.equals(saveIp) || port != savePort || !userName.equals(_userName) || isTeacher != _isTeacher) {
+//            edit.putInt(Common.PORT_KEY, port);
+//            edit.putString(Common.IP_KEY, ip);
+//            edit.putBoolean(Common.IS_TEACHER_KEY, isTeacher);
+//            edit.putString(Common.NAME_KEY, userName);
+//            edit.commit();
+//
+//            connection();
+//        }
+//        Toast.makeText(this, "저장완료 : " + ip, Toast.LENGTH_LONG).show();
+        connection();
     }
 
     @Override
@@ -253,21 +258,21 @@ public class MainActivity extends Activity implements SettingListener {
         unbindService(mConnection);
     }
 
-    public void sendMsg(){
-        JSONObject data = new JSONObject();
-        try {
-            data.put("identifier", "user_info");
-            data.put("user", _isTeacher ? "T" : "S");
-            data.put("name", _userName);
-            if (_uuid != null)
-                data.put("device_id", _uuid);
-            Log.d("lee - ", "connectionSuccdee : "+data.toString());
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-
-        mService.requestApi(data);
-    }
+//    public void sendMsg(){
+//        JSONObject data = new JSONObject();
+//        try {
+//            data.put("identifier", "user_info");
+//            data.put("user", _isTeacher ? "T" : "S");
+//            data.put("name", _userName);
+//            if (_uuid != null)
+//                data.put("device_id", _uuid);
+//            Log.d("lee - ", "connectionSuccdee : "+data.toString());
+//        } catch (JSONException e) {
+//            e.printStackTrace();
+//        }
+//
+//        mService.requestApi(data);
+//    }
 
 
     /**

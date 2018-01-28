@@ -14,6 +14,7 @@ import org.json.JSONObject;
 
 import java.io.File;
 
+import play.and.eat.com.recording.data.SettingData;
 import play.and.eat.com.recording.play.and.eat.com.recording.listener.FileDownloadListener;
 import play.and.eat.com.recording.play.and.eat.com.recording.listener.TCPClientListener;
 
@@ -23,23 +24,25 @@ import play.and.eat.com.recording.play.and.eat.com.recording.listener.TCPClientL
  */
 
 public class KeepAliveService extends Service implements TCPClientListener, FileDownloadListener {
-    public String _ip = "";
-    public int _port = 0;
-    TCPClient _client = null;
-    String _userName;
-    boolean _isTeacher = false;
-    String _uuid = null;
-    int _ftpPort = 21;
+//    public String _ip = "";
+//    public int _port = 0;
+//    TCPClient _client = null;
+//    String _userName;
+//    boolean _isTeacher = false;
+//    String _uuid = null;
+//    int _ftpPort = 21;
 
     int _progress = 0;
-    SharedPreferences _pref;
-    String _ftpId = "";
-    String _ftpPw = "";
+//    SharedPreferences _pref;
+//    String _ftpId = "";
+//    String _ftpPw = "";
 
     boolean isSending = false;
 
+    FileUpLoad _fileUpload = null;
+
     @Override
-    public void progress(String fileName, int persent) {
+    public void progress(final String fileName, int persent) {
         if(_progress < persent){
             _progress = persent;
             JSONObject data = new JSONObject();
@@ -49,9 +52,9 @@ public class KeepAliveService extends Service implements TCPClientListener, File
                 data.put("current", (sendIndex+1)+"");
                 data.put("max", _list.length+"");
                 data.put("name", fileName);
-                data.put("device_id", _uuid);
-                _client.WriteCommand(data.toString());
-                Log.d("lee - ", "connectionSuccdee : "+data.toString());
+                data.put("device_id", SettingData.Instance().uuid);
+                TCPClient.Instance().WriteCommand(data.toString());
+//                        Log.d("lee - ", "connectionSuccdee : "+data.toString());
             } catch (JSONException e) {
                 e.printStackTrace();
             }
@@ -66,14 +69,38 @@ public class KeepAliveService extends Service implements TCPClientListener, File
             data.put("identifier", "downEnd");
             data.put("max", _list.length + "");
             data.put("current", (sendIndex+1) + "");
-            data.put("device_id", _uuid);
+            data.put("device_id", SettingData.Instance().uuid);
             data.put("name", fileName);
-            _client.WriteCommand(data.toString());
-            Log.d("lee - ", "connectionSuccdee : " + data.toString());
+            TCPClient.Instance().WriteCommand(data.toString());
+//            Log.d("lee - ", "connectionSuccdee : " + data.toString());
+//            isSending = false;
+
         } catch (JSONException e) {
             e.printStackTrace();
         }
+
+        if(_list[sendIndex].delete()){
+            sendIndex++;
+            if(_list.length == sendIndex){
+                _list = null;
+                _fileUpload.close();
+            }else{
+                sendFile();
+            }
+        }
     }
+
+     @Override
+     public void downLoadFail(String msg){
+         _progress = 0;
+         sendIndex++;
+         if(_list.length == sendIndex){
+             _list = null;
+             _fileUpload.close();
+         }else{
+             sendFile();
+         }
+     }
 
     //서비스 바인더 내부 클래스 선언
     public class MainServiceBinder extends Binder {
@@ -97,8 +124,8 @@ public class KeepAliveService extends Service implements TCPClientListener, File
 
     @Override
     public void onDestroy() {
-        if(_client != null && _client.isConnected())
-            _client.Disconnect();
+        if(TCPClient.Instance().isConnected())
+            TCPClient.Instance().Disconnect();
         super.onDestroy();
     }
 
@@ -115,18 +142,18 @@ public class KeepAliveService extends Service implements TCPClientListener, File
             e.printStackTrace();
         }
 
-        _pref = getSharedPreferences(Common.SHARE_DATA_KEY, Context.MODE_PRIVATE);
-        _ftpId = _pref.getString(Common.FTP_ID,"");
-        _ftpPw = _pref.getString(Common.FTP_PW,"");
+//        _pref = getSharedPreferences(Common.SHARE_DATA_KEY, Context.MODE_PRIVATE);
+//        _ftpId = _pref.getString(Common.FTP_ID,"");
+//        _ftpPw = _pref.getString(Common.FTP_PW,"");
 
         JSONObject data = new JSONObject();
         try {
             data.put("identifier", "user_info");
-            data.put("user", _isTeacher ? "T" : "S");
-            data.put("name", _userName);
-            if (_uuid != null)
-                data.put("device_id", _uuid);
-            _client.WriteCommand(data.toString());
+            data.put("user", SettingData.Instance().isTeacher ? "T" : "S");
+            data.put("name", SettingData.Instance().name);
+            if (!SettingData.Instance().uuid.equals(""))
+                data.put("device_id", SettingData.Instance().uuid);
+            TCPClient.Instance().WriteCommand(data.toString());
             Log.d("lee - ", "connectionSuccdee : "+data.toString());
         } catch (JSONException e) {
             e.printStackTrace();
@@ -141,10 +168,7 @@ public class KeepAliveService extends Service implements TCPClientListener, File
 
     @Override
     public void connectionSnap() {
-        if(_client == null)
-            _client = new TCPClient();
-
-        _client.Connect(_ip, _port, this, _uuid);
+        TCPClient.Instance().Connect(SettingData.Instance().ip, SettingData.Instance().port, this, SettingData.Instance().uuid);
     }
 
     @Override
@@ -173,23 +197,22 @@ public class KeepAliveService extends Service implements TCPClientListener, File
     }
 
     //액티비티에서 서비스 함수를 호출하기 위한 함수 생성
-    public void myServiceFunc(String ip, int port, String userName, String uuid, boolean isTeacher, int ftpPort){
+    public void myServiceFunc(){
         //서비스에서 처리할 내용
-        _ip = ip;
-        _port = port;
-        _userName = userName;
-        _uuid = uuid;
-        _isTeacher = isTeacher;
-        _ftpPort = ftpPort;
+//        _ip = ip;
+//        _port = port;
+//        _userName = userName;
+//        _uuid = uuid;
+//        _isTeacher = isTeacher;
+//        _ftpPort = ftpPort;
         Log.d("lee - ", "myServiceFunc");
-        if(_client == null){
-            _client = new TCPClient();
-            _client.Connect(_ip, _port, this, _uuid);
-        }
+
+        TCPClient.Instance().Connect(SettingData.Instance().ip, SettingData.Instance().port, this, SettingData.Instance().uuid);
+
     }
 
     public void requestApi(JSONObject obj){
-        _client.WriteCommand(obj.toString());
+        TCPClient.Instance().WriteCommand(obj.toString());
     }
 
     String _filePath = null;
@@ -201,45 +224,26 @@ public class KeepAliveService extends Service implements TCPClientListener, File
         File f = new File(path);
         _list = f.listFiles();
 
-//        for(File file : _list ) {
-//            int endIndex = file.getName().indexOf(".");
-//            String name = file.getName().substring(0, endIndex);
-//            String ext = file.getName().substring(endIndex, file.getName().length());
-//
-//            if (!ext.equalsIgnoreCase("zip")) {
-//                File reNameFile = new File(path + name + ".zip");
-//                file.renameTo(reNameFile);
-//            }
-//        }
-//
-//        _list = f.listFiles();
-        sendFile();
-    }
-
-    void sendFile(){
         if(_list != null && _list.length > 0){
-            //_client.WriteData(_list[sendIndex].getPath());
-            if(_ftpId.equals("") || _ftpPw.equals("")){
-                Toast.makeText(getApplicationContext(), "FTP ID 또는 PASSWORD 가 없습니다.", Toast.LENGTH_LONG).show();
-            }else{
-                FileUpLoad fileUpload = new FileUpLoad(_ip, _ftpPort, _ftpId, _ftpPw, "utf-8", "./", this);
-                fileUpload.login();
-                isSending = true;
-                sendIndex = 0;
+            _fileUpload = new FileUpLoad(SettingData.Instance().ip, SettingData.Instance().ftpPort, SettingData.Instance().ftpId, SettingData.Instance().ftpPw, "utf-8", "./", this);
+            _fileUpload.login();
+            isSending = true;
+            sendIndex = 0;
 
-                for(File f : _list){
-                    if(fileUpload.uploadFile(f)){
-                        sendIndex++;
-                        f.delete();
-                    }
-                }
-               _list = null;
-                fileUpload.close();
-            }
-
+            sendFile();
         }else{
             downLoadComplate("");
         }
+
+    }
+
+    void sendFile(){
+            //_client.WriteData(_list[sendIndex].getPath());
+            if(SettingData.Instance().ftpId.equals("") || SettingData.Instance().ftpPw.equals("")){
+                Toast.makeText(getApplicationContext(), "FTP ID 또는 PASSWORD 가 없습니다.", Toast.LENGTH_LONG).show();
+            }else {
+                _fileUpload.uploadFile(_list[sendIndex]);
+            }
     }
 
 }

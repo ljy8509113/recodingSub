@@ -6,6 +6,8 @@ package play.and.eat.com.recording;
 
 import android.util.Log;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -32,6 +34,14 @@ public class TCPClient {
     private int serverPort = 1234;
     TCPClientListener _listener;
     String _uuid = "";
+    static TCPClient _instance = null;
+
+    public static TCPClient Instance(){
+        if(_instance == null){
+            _instance = new TCPClient();
+        }
+        return _instance;
+    }
 
     /**
      * Returns true if TCPClient is connected, else false
@@ -132,15 +142,15 @@ public class TCPClient {
 
                 startTime = System.currentTimeMillis();
                 try {
-                    StringBuffer sb = new StringBuffer();
+
                     byte[] b = new byte[1024];
                     //Log.d("lee - ", input.read(b) + "  /  int");
-                    for (int n; (n = input.read(b)) != -1; ) {
-                        //Log.d(TAG, "result 1: " + sb.toString());
-                        sb.append(new String(b, 0, n));
-                        _listener.onReceiver(sb.toString());
-                        sb = new StringBuffer();
-                    }
+                   for (int n; (n = input.read(b)) != -1; ) {
+                       //Log.d(TAG, "result 1: " + sb.toString());
+                       String result = new String(b, 0, n);
+                       _listener.onReceiver(result);
+                   }
+                    Log.d("lee", "end receve");
                     //Stop listening so we don't have e thread using up CPU-cycles when we're not expecting data
                     stopThreads();
                 } catch (Exception e) {
@@ -151,7 +161,6 @@ public class TCPClient {
             receiveThreadRunning = false;
             Log.d(TAG, "Receiving stopped");
         }
-
     }
 
     public class SendRunnable implements Runnable {
@@ -199,26 +208,26 @@ public class TCPClient {
         public void run() {
             Log.d(TAG, "Sending started");
             while (!Thread.currentThread().isInterrupted() && isConnected()) {
-                if (this.hasMessage) {
+                if (hasMessage) {
                     startTime = System.currentTimeMillis();
                     try {
-                        String str1 = new String(this.data,0,this.data.length);
-                        Log.d("lee - ", str1 + " : length : " + this.data.length);
+                        String str1 = new String(data,0,data.length);
+                        Log.d("lee - ", str1 + " : length : " + data.length);
 
-                        this.out.write(this.data, 0, this.data.length);
+                        out.write(data, 0, data.length);
                         //Flush the stream to be sure all bytes has been written out
-                        this.out.flush();
+                        out.flush();
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
 
-                    this.hasMessage = false;
+//                this.hasMessage = false;
 
                     long time = System.currentTimeMillis() - startTime;
-                    Log.d(TAG, "Command has been sent! Current duration: " + time + "ms // data : " + this.data.length);
-                    this.data = null;
+                    Log.d(TAG, "Command has been sent! Current duration: " + time + "ms // data : " + data.length);
                     if (!receiveThreadRunning)
                         startReceiving(); //Start the receiving thread if it's not already running
+                    this.hasMessage = false;
                 }
             }
             Log.d(TAG, "Sending stopped");

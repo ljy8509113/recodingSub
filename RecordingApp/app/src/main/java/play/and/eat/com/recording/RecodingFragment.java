@@ -53,6 +53,7 @@ import java.util.UUID;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
+import play.and.eat.com.recording.data.SettingData;
 import play.and.eat.com.recording.play.and.eat.com.recording.listener.SettingListener;
 
 /**
@@ -185,7 +186,7 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
     Button _buttonSetting;
     MainActivity _activity;
     public SettingListener _listener;
-    public String _userName = "";
+//    public String _userName = "";
     TextView _textRecoding;
 
     private CameraDevice.StateCallback mStateCallback = new CameraDevice.StateCallback() {
@@ -410,9 +411,11 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
             if (map == null) {
                 throw new RuntimeException("Cannot get available preview/video sizes");
             }
-//            mVideoSize = chooseVideoSize(map.getOutputSizes(MediaRecorder.class));
-            mVideoSize = new Size(1920, 1080);
-            mPreviewSize = chooseOptimalSize(map.getOutputSizes(SurfaceTexture.class), width, height, mVideoSize);
+            mVideoSize = chooseVideoSize(map.getOutputSizes(MediaRecorder.class));
+//            mVideoSize = new Size(1920, 1080);
+            mVideoSize = new Size(1280, 960);
+            mPreviewSize = chooseOptimalSize(map.getOutputSizes
+                    (SurfaceTexture.class), width, height, mVideoSize);
 
             int orientation = getResources().getConfiguration().orientation;
             if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
@@ -420,6 +423,7 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
             } else {
                 mTextureView.setAspectRatio(mPreviewSize.getHeight(), mPreviewSize.getWidth());
             }
+
             configureTransform(width, height);
             mMediaRecorder = new MediaRecorder();
             manager.openCamera(cameraId, mStateCallback, null);
@@ -678,8 +682,8 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
     }
 
     @Override
-    public void onSaved(String ip, int port, String userName, boolean isTeacher, int ftpPort) {
-        _listener.onSaved(ip, port, userName, isTeacher, ftpPort);
+    public void onSaved() {
+        _listener.onSaved();
     }
 
     /**
@@ -726,28 +730,10 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
 
     public String getFilename() {
 //        _fileIndex++;
-        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd_HH_mm");
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd-HH_mm");
         String time = format.format(System.currentTimeMillis());
-        String newFilename = Common.getMoviePath() +"/"+ _userName +"_"+ time + ".mp4";
+        String newFilename = Common.getMoviePath() +"/"+ time + "@" + SettingData.Instance().name + ".mp4";
         return newFilename;
-    }
-
-    public String getUUID(Context mContext){
-        // Activity에서 실행하는경우
-        if (ContextCompat.checkSelfPermission(mContext, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) {
-            final TelephonyManager tm = (TelephonyManager) mContext.getSystemService(Context.TELEPHONY_SERVICE);
-            final String tmDevice, tmSerial, androidId;
-
-            tmDevice = "" + tm.getDeviceId();
-            tmSerial = "" + tm.getSimSerialNumber();
-
-            androidId = "" + android.provider.Settings.Secure.getString(mContext.getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
-            UUID deviceUuid = new UUID(androidId.hashCode(), ((long) tmDevice.hashCode() << 32) | tmSerial.hashCode());
-            String deviceId = deviceUuid.toString();
-            return deviceId;
-        }else{
-            return null;
-        }
     }
 
     public boolean isRecording(){

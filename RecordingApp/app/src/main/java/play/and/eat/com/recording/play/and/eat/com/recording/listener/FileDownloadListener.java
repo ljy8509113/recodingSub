@@ -7,4 +7,5 @@ package play.and.eat.com.recording.play.and.eat.com.recording.listener;
 public interface FileDownloadListener {
     void progress(String fileName, int persent);
     void downLoadComplate(String fileName);
+    void downLoadFail(String msg);
 }

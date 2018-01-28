@@ -120,6 +120,9 @@ public class FileUpLoad implements CopyStreamListener{
         } finally {
             try {
                 fis.close();
+                if(!uploadResult)
+                    _downListener.downLoadFail(" 동영상 전송에 실패하였습니다.("+_fileName+")");
+                else
                 _downListener.downLoadComplate(_fileName);
             } catch (IOException e) {
                 // TODO Auto-generated catch block
@@ -139,11 +142,12 @@ public class FileUpLoad implements CopyStreamListener{
     @Override
     public void bytesTransferred(long l, int i, long l1) {
         int percent = (int)( ((double)l/(double)fileLength)  * 100);
-        if(percent == 100){
+//        Log.d("lee", "progress : "+ percent);
+//        if(percent == 100){
 //            _downListener.downLoadComplate(_fileName);
-        }else{
-            //_downListener.progress(_fileName, percent/10);
-        }
+//        }else{
+            _downListener.progress(_fileName, percent);
+//        }
 
         //Log.d("lee - ", "l : " + l + " // i" + i + " // l1 " +l1 );
         //Log.d("lee - ", "progress : " + percent + " // l : "+ l +" // total : " + fileLength);
