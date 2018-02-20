@@ -67,8 +67,13 @@ public class KeepAliveService extends Service implements TCPClientListener, File
         JSONObject data = new JSONObject();
         try {
             data.put("identifier", "downEnd");
-            data.put("max", _list.length + "");
-            data.put("current", (sendIndex+1) + "");
+            if(!fileName.equals("") && _list != null){
+                data.put("current", (sendIndex+1) + "");
+                data.put("max", _list.length + "");
+            }else{
+                data.put("current", 0 + "");
+                data.put("max", 0 + "");
+            }
             data.put("device_id", SettingData.Instance().uuid);
             data.put("name", fileName);
             TCPClient.Instance().WriteCommand(data.toString());
@@ -79,15 +84,18 @@ public class KeepAliveService extends Service implements TCPClientListener, File
             e.printStackTrace();
         }
 
-        if(_list[sendIndex].delete()){
-            sendIndex++;
-            if(_list.length == sendIndex){
-                _list = null;
-                _fileUpload.close();
-            }else{
-                sendFile();
+        if(_list != null && _list.length > sendIndex){
+            if(_list[sendIndex].delete()){
+                sendIndex++;
+                if(_list.length == sendIndex){
+                    _list = null;
+                    _fileUpload.close();
+                }else{
+                    sendFile();
+                }
             }
         }
+
     }
 
      @Override

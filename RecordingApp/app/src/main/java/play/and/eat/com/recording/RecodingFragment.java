@@ -412,8 +412,8 @@ public class RecodingFragment extends Fragment implements View.OnClickListener, 
                 throw new RuntimeException("Cannot get available preview/video sizes");
             }
             mVideoSize = chooseVideoSize(map.getOutputSizes(MediaRecorder.class));
-//            mVideoSize = new Size(1920, 1080);
-            mVideoSize = new Size(1280, 960);
+            mVideoSize = new Size(1920, 1080);
+//            mVideoSize = new Size(1280, 960);
             mPreviewSize = chooseOptimalSize(map.getOutputSizes
                     (SurfaceTexture.class), width, height, mVideoSize);
 

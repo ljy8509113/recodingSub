@@ -146,6 +146,7 @@ public class FileUpLoad implements CopyStreamListener{
 //        if(percent == 100){
 //            _downListener.downLoadComplate(_fileName);
 //        }else{
+            Log.d("progress : ", percent + "");
             _downListener.progress(_fileName, percent);
 //        }
 
